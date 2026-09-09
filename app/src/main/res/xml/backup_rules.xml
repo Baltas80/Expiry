@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- Keep consumption/waste history and inactive rewards data out of cloud backup on Android 11 and lower. -->
+    <exclude domain="sharedpref" path="expiry_local_outcomes.xml" />
+    <exclude domain="sharedpref" path="expiry_rewards.xml" />
+</full-backup-content>
