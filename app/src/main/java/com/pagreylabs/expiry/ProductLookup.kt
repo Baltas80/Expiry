@@ -4,7 +4,7 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
-/** Lightweight Open Food Facts lookup. Runs off the main thread. */
+/** Barcode lookup with a persistent local Expiry catalog plus Open Food Facts fallback. */
 object ProductLookup {
     data class Result(
         val found: Boolean,
@@ -16,10 +16,18 @@ object ProductLookup {
         Thread {
             val cleanBarcode = barcode.trim()
             val result = runCatching {
-                lookupV3(cleanBarcode) ?: lookupV2(cleanBarcode)
+                lookupLocal(cleanBarcode)
+                    ?: lookupV3(cleanBarcode)
+                    ?: lookupV2(cleanBarcode)
             }.getOrNull()
             callback(result)
         }.start()
+    }
+
+    private fun lookupLocal(barcode: String): Result? {
+        if (barcode.isBlank()) return null
+        val product = ExpiryRepository(ExpiryApplication.appContext).findProductByBarcode(barcode) ?: return null
+        return Result(found = true, name = product.name, category = product.category)
     }
 
     private fun lookupV3(barcode: String): Result? {
@@ -38,7 +46,7 @@ object ProductLookup {
             if (connection.responseCode !in 200..299) return null
             val root = JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
             if (root.optInt("status", 0) != 1) return null
-            productResult(root.optJSONObject("product"))
+            productResult(root.optJSONObject("product"), barcode)
         } finally {
             connection.disconnect()
         }
@@ -61,13 +69,13 @@ object ProductLookup {
             if (connection.responseCode !in 200..299) return null
             val root = JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
             if (root.optInt("status", 0) != 1) return null
-            productResult(root.optJSONObject("product"))
+            productResult(root.optJSONObject("product"), barcode)
         } finally {
             connection.disconnect()
         }
     }
 
-    private fun productResult(product: JSONObject?): Result {
+    private fun productResult(product: JSONObject?, barcode: String): Result {
         if (product == null) return Result(found = false)
 
         val name = firstNonBlank(
@@ -80,11 +88,15 @@ object ProductLookup {
             ?.trim()
             .orEmpty()
 
-        return Result(
+        val result = Result(
             found = name.isNotBlank() || category.isNotBlank(),
             name = name,
             category = category
         )
+        if (result.found) {
+            ExpiryRepository(ExpiryApplication.appContext).rememberProduct(barcode, result.name, result.category)
+        }
+        return result
     }
 
     private fun firstNonBlank(vararg values: String): String =
