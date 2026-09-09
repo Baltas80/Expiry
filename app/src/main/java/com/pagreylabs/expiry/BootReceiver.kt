@@ -6,17 +6,32 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 
+/** Restores daytime expiry reminders after reboot, app replacement or clock/time-zone changes. */
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action != Intent.ACTION_BOOT_COMPLETED && intent.action != Intent.ACTION_MY_PACKAGE_REPLACED) return
-        val repository = ExpiryRepository(context.applicationContext)
+        when (intent.action) {
+            Intent.ACTION_BOOT_COMPLETED,
+            Intent.ACTION_MY_PACKAGE_REPLACED,
+            Intent.ACTION_TIME_CHANGED,
+            Intent.ACTION_TIMEZONE_CHANGED -> rescheduleAll(context)
+        }
+    }
+
+    private fun rescheduleAll(context: Context) {
+        val appContext = context.applicationContext
+        val repository = ExpiryRepository(appContext)
         val now = System.currentTimeMillis()
-        val alarm = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val alarm = appContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+
         repository.all().forEach { item ->
+            val pendingIntent = reminderPendingIntent(appContext, item.id)
+            alarm.cancel(pendingIntent)
+
             val trigger = ExpiryDateUtils.reminderTrigger(item.expiryMillis, item.reminderDays)
             if (trigger > now) {
-                val pendingIntent = reminderPendingIntent(context, item.id)
                 alarm.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, trigger, pendingIntent)
+            } else {
+                pendingIntent.cancel()
             }
         }
     }
