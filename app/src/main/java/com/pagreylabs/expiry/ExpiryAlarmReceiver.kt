@@ -20,11 +20,14 @@ class ExpiryAlarmReceiver : BroadcastReceiver() {
         manager.createNotificationChannel(NotificationChannel(CHANNEL, context.getString(R.string.notification_channel), NotificationManager.IMPORTANCE_DEFAULT))
         val open = PendingIntent.getActivity(context, 0, Intent(context, MainActivity::class.java), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val notification = NotificationCompat.Builder(context, CHANNEL)
-            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setSmallIcon(R.drawable.ic_expiry_notification)
             .setContentTitle(context.getString(R.string.notification_title))
             .setContentText(context.getString(R.string.notification_text, name))
-            .setContentIntent(open).setAutoCancel(true).build()
+            .setContentIntent(open)
+            .setAutoCancel(true)
+            .build()
         NotificationManagerCompat.from(context).notify(notificationId, notification)
     }
+
     companion object { const val CHANNEL = "expiry_alerts" }
 }
