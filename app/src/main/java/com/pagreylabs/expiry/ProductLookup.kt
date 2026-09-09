@@ -17,7 +17,7 @@ object ProductLookup {
                     requestMethod = "GET"
                     connectTimeout = 5000
                     readTimeout = 5000
-                    setRequestProperty("User-Agent", "Expiry/0.3 (PAGREY LABS)")
+                    setRequestProperty("User-Agent", "Expiry/0.5 (PAGREY LABS)")
                 }
                 try {
                     if (connection.responseCode !in 200..299) return@runCatching null
