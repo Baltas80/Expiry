@@ -9,6 +9,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -68,8 +69,14 @@ class MainActivity : ComponentActivity() {
                 ExpiryRepository(applicationContext).recordScan(code)
                 ProductLookup.lookup(code) { result ->
                     runOnUiThread {
-                        scannedProductName = result?.name.orEmpty()
-                        scannedProductCategory = result?.category.orEmpty()
+                        when {
+                            result == null -> Toast.makeText(this, R.string.product_lookup_error, Toast.LENGTH_SHORT).show()
+                            !result.found -> Toast.makeText(this, R.string.product_not_found, Toast.LENGTH_SHORT).show()
+                            else -> {
+                                scannedProductName = result.name
+                                scannedProductCategory = result.category
+                            }
+                        }
                     }
                 }
             }
@@ -239,111 +246,3 @@ private fun ExpiryApp(
     if (showStats) ConsumptionStatsDialog(items, repository.scanHistory(), repository.outcomeHistory(), { showStats = false })
     LaunchedEffect(scannedBarcode) { if (scannedBarcode != null && !showAdd && editing == null) showAdd = true }
 }
-
-@Composable
-private fun ExpiryCard(item: ExpiryItem, onEdit: () -> Unit, onDelete: () -> Unit, onOutcome: () -> Unit, r: android.content.res.Resources) {
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.fillMaxWidth().padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(item.name, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleMedium)
-                    if (item.category.isNotBlank()) Text(item.category, style = MaterialTheme.typography.bodySmall)
-                    Text(r.getString(R.string.expiry_date, dateText(item.expiryMillis)), style = MaterialTheme.typography.bodyMedium)
-                    Text(statusText(item, r), style = MaterialTheme.typography.labelLarge)
-                    Text(r.getString(R.string.notice, item.reminderDays), style = MaterialTheme.typography.bodySmall)
-                    if (item.barcode.isNotBlank()) Text(r.getString(R.string.code, item.barcode), style = MaterialTheme.typography.bodySmall)
-                }
-                IconButton(onEdit) { Icon(Icons.Default.Edit, stringResource(R.string.edit_product)) }
-                IconButton(onDelete) { Icon(Icons.Default.Delete, stringResource(R.string.delete_product)) }
-            }
-            Spacer(Modifier.height(8.dp))
-            OutlinedButton(onOutcome, Modifier.fillMaxWidth()) { Text(stringResource(R.string.record_consumption_waste)) }
-        }
-    }
-}
-
-@Composable
-private fun ExpiryDialog(existing: ExpiryItem?, initialBarcode: String, initialName: String, initialCategory: String, onScanBarcode: () -> Unit, onDismiss: () -> Unit, onSave: (ExpiryItem) -> Unit) {
-    val context = LocalContext.current
-    var name by remember(existing?.id, initialBarcode, initialName) { mutableStateOf(initialName.ifBlank { existing?.name ?: "" }) }
-    var category by remember(existing?.id, initialBarcode, initialCategory) { mutableStateOf(initialCategory.ifBlank { existing?.category ?: "" }) }
-    var barcode by remember(existing?.id, initialBarcode) { mutableStateOf(initialBarcode.ifBlank { existing?.barcode ?: "" }) }
-    var reminder by remember(existing?.id) { mutableStateOf((existing?.reminderDays ?: 7).toString()) }
-    var date by remember(existing?.id) { mutableLongStateOf(existing?.expiryMillis ?: System.currentTimeMillis()) }
-    var error by remember(existing?.id) { mutableStateOf(false) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(if (existing == null) R.string.new_product else R.string.edit_product)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(name, { name = it; error = false }, label = { Text(stringResource(R.string.product)) }, singleLine = true, isError = error, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(category, { category = it }, label = { Text(stringResource(R.string.category_optional)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(barcode, { barcode = it }, label = { Text(stringResource(R.string.barcode_optional)) }, singleLine = true, trailingIcon = { IconButton(onScanBarcode) { Icon(Icons.Default.QrCodeScanner, stringResource(R.string.scan_code)) } }, modifier = Modifier.fillMaxWidth())
-                Button(onScanBarcode, Modifier.fillMaxWidth()) { Icon(Icons.Default.QrCodeScanner, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.scan_code)) }
-                Button({
-                    val c = Calendar.getInstance().apply { timeInMillis = date }
-                    DatePickerDialog(context, { _, y, m, d -> c.set(y, m, d, 12, 0, 0); c.set(Calendar.MILLISECOND, 0); date = c.timeInMillis }, c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DAY_OF_MONTH)).show()
-                }, Modifier.fillMaxWidth()) { Text(stringResource(R.string.expiry_date, dateText(date))) }
-                OutlinedTextField(reminder, { if (it.all(Char::isDigit)) reminder = it }, label = { Text(stringResource(R.string.reminder_days)) }, supportingText = { Text(stringResource(R.string.reminder_help)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            }
-        },
-        confirmButton = { Button({
-            if (name.isBlank()) { error = true; return@Button }
-            val id = existing?.id ?: UUID.randomUUID().mostSignificantBits
-            onSave(ExpiryItem(id, name.trim(), category.trim(), date, reminder.toIntOrNull()?.coerceIn(0, 365) ?: 7, barcode.trim()))
-        }) { Text(stringResource(R.string.save)) } },
-        dismissButton = { TextButton(onDismiss) { Text(stringResource(R.string.cancel)) } }
-    )
-}
-
-@Composable
-private fun ConsumptionStatsDialog(items: List<ExpiryItem>, scans: List<ScanEvent>, outcomes: List<OutcomeEvent>, onDismiss: () -> Unit) {
-    val r = LocalContext.current.resources
-    val recent = scans.count { it.timestamp >= System.currentTimeMillis() - 7L * 86_400_000L }
-    val consumed = outcomes.count { it.outcome == OutcomeType.CONSUMED }
-    val discarded = outcomes.count { it.outcome == OutcomeType.DISCARDED }
-    val total = consumed + discarded
-    val rate = if (total == 0) 0 else discarded * 100 / total
-    val scanCounts = scans.groupingBy { it.barcode }.eachCount().entries.sortedByDescending { it.value }.take(5)
-    val names = scanCounts.map { (b, c) -> (items.firstOrNull { it.barcode == b }?.name ?: b) to c }
-    val categories = items.filter { it.category.isNotBlank() }.groupingBy { it.category }.eachCount().entries.sortedByDescending { it.value }.take(5)
-    val discardedNames = outcomes.filter { it.outcome == OutcomeType.DISCARDED }.groupingBy { it.name }.eachCount().entries.sortedByDescending { it.value }.take(5)
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.stats_title)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(r.getString(R.string.active_products, items.size))
-                Text(r.getString(R.string.total_scans, scans.size))
-                Text(r.getString(R.string.scans_7_days, recent))
-                Text(r.getString(R.string.consumed_registered, consumed))
-                Text(r.getString(R.string.discarded_registered, discarded))
-                Text(r.getString(R.string.discard_rate, rate))
-                if (names.isNotEmpty()) { Text(stringResource(R.string.most_scanned), fontWeight = FontWeight.SemiBold); names.forEach { Text(r.getString(R.string.scan_count, it.first, it.second)) } }
-                if (discardedNames.isNotEmpty()) { Text(stringResource(R.string.most_discarded), fontWeight = FontWeight.SemiBold); discardedNames.forEach { Text(r.getString(R.string.discard_count, it.key, it.value)) } }
-                if (categories.isNotEmpty()) { Text(stringResource(R.string.active_categories), fontWeight = FontWeight.SemiBold); categories.forEach { Text(r.getString(R.string.product_count, it.key, it.value)) } }
-                Text(stringResource(R.string.stats_note), style = MaterialTheme.typography.bodySmall)
-            }
-        },
-        confirmButton = { TextButton(onDismiss) { Text(stringResource(R.string.close)) } }
-    )
-}
-
-internal fun reminderPendingIntent(context: Context, id: Long): PendingIntent {
-    val intent = Intent(context, ExpiryAlarmReceiver::class.java).apply { putExtra("id", id) }
-    val requestCode = (id xor (id ushr 32)).toInt()
-    return PendingIntent.getBroadcast(context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-}
-
-private fun scheduleReminder(context: Context, item: ExpiryItem) {
-    val trigger = ExpiryDateUtils.reminderTrigger(item.expiryMillis, item.reminderDays)
-    if (trigger <= System.currentTimeMillis()) return
-    (context.getSystemService(Context.ALARM_SERVICE) as AlarmManager).setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, trigger, reminderPendingIntent(context, item.id))
-}
-
-private fun cancelReminder(context: Context, id: Long) {
-    (context.getSystemService(Context.ALARM_SERVICE) as AlarmManager).cancel(reminderPendingIntent(context, id))
-}
-
-@Composable
-private fun ExpiryTheme(content: @Composable () -> Unit) { MaterialTheme(content = content) }
