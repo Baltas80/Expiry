@@ -56,19 +56,22 @@ data class ExpiryCloudSnapshot(
     val generatedAt: Long = System.currentTimeMillis()
 ) {
     /** Cloud payload deliberately contains no consumption/outcome history. */
-    fun toServerJson(): JSONObject = JSONObject().apply {
-        put("schemaVersion", schemaVersion)
-        put("generatedAt", generatedAt)
-        put("user", user.toJson())
-        put("products", JSONArray().apply { products.forEach { put(it.toJson()) } })
-        put("scanHistory", JSONArray().apply {
-            scanHistory.forEach {
-                put(JSONObject().apply {
-                    put("barcode", it.barcode)
-                    put("timestamp", it.timestamp)
-                })
-            }
-        })
+    fun toServerJson(): JSONObject {
+        DataLifecycle.requireCloudSyncAllowed(user)
+        return JSONObject().apply {
+            put("schemaVersion", schemaVersion)
+            put("generatedAt", generatedAt)
+            put("user", user.toJson())
+            put("products", JSONArray().apply { products.forEach { put(it.toJson()) } })
+            put("scanHistory", JSONArray().apply {
+                scanHistory.forEach {
+                    put(JSONObject().apply {
+                        put("barcode", it.barcode)
+                        put("timestamp", it.timestamp)
+                    })
+                }
+            })
+        }
     }
 }
 
