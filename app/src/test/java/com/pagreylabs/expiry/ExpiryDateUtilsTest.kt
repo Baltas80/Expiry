@@ -20,12 +20,31 @@ class ExpiryDateUtilsTest {
     }
 
     @Test
-    fun reminderUsesCalendarDays() {
-        val expiry = calendar(2026, Calendar.MARCH, 30, 12)
-        val trigger = Calendar.getInstance().apply { timeInMillis = ExpiryDateUtils.reminderTrigger(expiry.timeInMillis, 7) }
+    fun reminderUsesCalendarDaysAndDaytimeHour() {
+        val expiry = calendar(2026, Calendar.MARCH, 30, 23)
+        val trigger = Calendar.getInstance().apply {
+            timeInMillis = ExpiryDateUtils.reminderTrigger(expiry.timeInMillis, 7)
+        }
         assertEquals(2026, trigger.get(Calendar.YEAR))
         assertEquals(Calendar.MARCH, trigger.get(Calendar.MONTH))
         assertEquals(23, trigger.get(Calendar.DAY_OF_MONTH))
+        assertEquals(ExpiryDateUtils.REMINDER_HOUR, trigger.get(Calendar.HOUR_OF_DAY))
+        assertEquals(ExpiryDateUtils.REMINDER_MINUTE, trigger.get(Calendar.MINUTE))
+        assertEquals(0, trigger.get(Calendar.SECOND))
+        assertEquals(0, trigger.get(Calendar.MILLISECOND))
+    }
+
+    @Test
+    fun normalizeExpiryTimePreservesCalendarDate() {
+        val expiry = calendar(2026, Calendar.MARCH, 30, 23)
+        val normalized = Calendar.getInstance().apply {
+            timeInMillis = ExpiryDateUtils.normalizeExpiryTime(expiry.timeInMillis)
+        }
+        assertEquals(2026, normalized.get(Calendar.YEAR))
+        assertEquals(Calendar.MARCH, normalized.get(Calendar.MONTH))
+        assertEquals(30, normalized.get(Calendar.DAY_OF_MONTH))
+        assertEquals(ExpiryDateUtils.REMINDER_HOUR, normalized.get(Calendar.HOUR_OF_DAY))
+        assertEquals(ExpiryDateUtils.REMINDER_MINUTE, normalized.get(Calendar.MINUTE))
     }
 
     private fun calendar(year: Int, month: Int, day: Int, hour: Int): Calendar =
