@@ -11,12 +11,27 @@ import androidx.core.app.NotificationManagerCompat
 
 class ExpiryAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        val name = intent.getStringExtra("name") ?: "Producto"
-        val id = intent.getLongExtra("id", System.currentTimeMillis()).toInt()
+        if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return
+
+        val itemId = intent.getLongExtra("id", Long.MIN_VALUE)
+        val item = if (itemId != Long.MIN_VALUE) {
+            ExpiryRepository(context.applicationContext).get(itemId)
+        } else null
+        val name = item?.name ?: intent.getStringExtra("name") ?: "Producto"
+        val notificationId = if (itemId != Long.MIN_VALUE) {
+            (itemId xor (itemId ushr 32)).toInt()
+        } else {
+            System.currentTimeMillis().toInt()
+        }
+
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        manager.createNotificationChannel(NotificationChannel(CHANNEL, "Caducidades", NotificationManager.IMPORTANCE_DEFAULT))
+        manager.createNotificationChannel(
+            NotificationChannel(CHANNEL, "Caducidades", NotificationManager.IMPORTANCE_DEFAULT)
+        )
         val open = PendingIntent.getActivity(
-            context, 0, Intent(context, MainActivity::class.java),
+            context,
+            0,
+            Intent(context, MainActivity::class.java),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val notification = NotificationCompat.Builder(context, CHANNEL)
@@ -26,7 +41,7 @@ class ExpiryAlarmReceiver : BroadcastReceiver() {
             .setContentIntent(open)
             .setAutoCancel(true)
             .build()
-        NotificationManagerCompat.from(context).notify(id, notification)
+        NotificationManagerCompat.from(context).notify(notificationId, notification)
     }
 
     companion object { const val CHANNEL = "expiry_alerts" }
