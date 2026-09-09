@@ -4,6 +4,9 @@ import java.util.Calendar
 
 /** Date-only helpers used for expiry/reminder calculations. */
 object ExpiryDateUtils {
+    const val REMINDER_HOUR = 10
+    const val REMINDER_MINUTE = 0
+
     fun startOfToday(now: Long = System.currentTimeMillis()): Calendar =
         Calendar.getInstance().apply {
             timeInMillis = now
@@ -26,10 +29,18 @@ object ExpiryDateUtils {
         return calendarDayNumber(expiry) - calendarDayNumber(today)
     }
 
-    /** Keeps reminder timing aligned to the product's calendar date across DST. */
+    /**
+     * Returns a local daytime reminder trigger, never midnight.
+     * The calendar date is shifted first so DST changes do not turn a day into
+     * a fixed 24-hour duration, then the reminder is placed at 10:00 local time.
+     */
     fun reminderTrigger(expiryMillis: Long, reminderDays: Int): Long {
         val calendar = Calendar.getInstance().apply { timeInMillis = expiryMillis }
         calendar.add(Calendar.DAY_OF_YEAR, -reminderDays.coerceIn(0, 365))
+        calendar.set(Calendar.HOUR_OF_DAY, REMINDER_HOUR)
+        calendar.set(Calendar.MINUTE, REMINDER_MINUTE)
+        calendar.set(Calendar.SECOND, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
         return calendar.timeInMillis
     }
 
