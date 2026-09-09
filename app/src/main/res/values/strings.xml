@@ -58,4 +58,12 @@
     <string name="notification_text">%1$s caduca pronto</string>
     <string name="product_not_found">Producto no encontrado. Puedes introducir sus datos manualmente.</string>
     <string name="product_lookup_error">No se pudo consultar el producto. Puedes introducir sus datos manualmente.</string>
+    <string name="settings">Ajustes</string>
+    <string name="enabled">activadas</string>
+    <string name="disabled">desactivadas</string>
+    <string name="settings_notifications">Notificaciones: %1$s</string>
+    <string name="settings_storage">Datos: almacenados localmente en este dispositivo.</string>
+    <string name="settings_rewards">Recompensas: función preparada pero inactiva.</string>
+    <string name="settings_version">Versión: %1$s</string>
+    <string name="settings_open_notifications">Abrir ajustes de notificaciones</string>
 </resources>
