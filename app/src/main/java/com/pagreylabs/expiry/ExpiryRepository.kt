@@ -3,6 +3,7 @@ package com.pagreylabs.expiry
 import android.content.Context
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.Calendar
 import java.util.UUID
 
 class ExpiryRepository(context: Context) {
@@ -105,22 +106,47 @@ class ExpiryRepository(context: Context) {
             postalCode = o.optString("postalCode"), language = o.optString("language", "es"),
             timezone = o.optString("timezone", java.util.TimeZone.getDefault().id),
             marketingConsent = o.optBoolean("marketingConsent"),
-            analyticsConsent = o.optBoolean("analyticsConsent"), syncConsent = o.optBoolean("syncConsent")
+            analyticsConsent = o.optBoolean("analyticsConsent"), syncConsent = o.optBoolean("syncConsent"),
+            consentAcceptedAt = if (o.has("consentAcceptedAt")) o.optLong("consentAcceptedAt") else null,
+            retentionUntil = if (o.has("retentionUntil")) o.optLong("retentionUntil") else null
         )
     }
 
+    /**
+     * Records the five-year retention period when synchronization consent is accepted.
+     * The period is calendar-based, so leap years are handled correctly.
+     */
     fun saveUserProfile(profile: ExpiryUserProfile) {
-        prefs.edit().putString("user_id", profile.userId).putString("user_profile", profile.toJson().toString()).apply()
+        val normalized = if (profile.syncConsent && profile.consentAcceptedAt == null) {
+            val acceptedAt = System.currentTimeMillis()
+            profile.copy(
+                consentAcceptedAt = acceptedAt,
+                retentionUntil = fiveYearsAfter(acceptedAt)
+            )
+        } else if (!profile.syncConsent) {
+            profile.copy(consentAcceptedAt = null, retentionUntil = null)
+        } else {
+            profile
+        }
+        prefs.edit().putString("user_id", normalized.userId).putString("user_profile", normalized.toJson().toString()).apply()
     }
 
-    /** Server-ready export. Consumption history is kept local by default. */
+    /** Server-ready export. Consumption history is intentionally excluded. */
     fun cloudSnapshot(): ExpiryCloudSnapshot = ExpiryCloudSnapshot(
-        user = userProfile(), products = all(), scanHistory = scanHistory(), outcomeHistory = outcomeHistory()
+        user = userProfile(), products = all(), scanHistory = scanHistory()
     )
+
+    private fun fiveYearsAfter(timestamp: Long): Long {
+        return Calendar.getInstance().apply {
+            timeInMillis = timestamp
+            add(Calendar.YEAR, RETENTION_YEARS)
+        }.timeInMillis
+    }
 
     companion object {
         private const val MAX_SCAN_HISTORY = 500
         private const val MAX_OUTCOME_HISTORY = 500
+        private const val RETENTION_YEARS = 5
     }
 }
 
