@@ -135,16 +135,14 @@ class ExpiryRepository(context: Context) {
      * The period is calendar-based, so leap years are handled correctly.
      */
     fun saveUserProfile(profile: ExpiryUserProfile) {
-        val normalized = if (profile.syncConsent && profile.consentAcceptedAt == null) {
-            val acceptedAt = System.currentTimeMillis()
-            profile.copy(
-                consentAcceptedAt = acceptedAt,
-                retentionUntil = fiveYearsAfter(acceptedAt)
-            )
-        } else if (!profile.syncConsent) {
+        val normalized = if (!profile.syncConsent) {
             profile.copy(consentAcceptedAt = null, retentionUntil = null)
         } else {
-            profile
+            val acceptedAt = profile.consentAcceptedAt ?: System.currentTimeMillis()
+            profile.copy(
+                consentAcceptedAt = acceptedAt,
+                retentionUntil = profile.retentionUntil ?: fiveYearsAfter(acceptedAt)
+            )
         }
         prefs.edit().putString("user_id", normalized.userId).putString("user_profile", normalized.toJson().toString()).apply()
     }
