@@ -352,7 +352,7 @@ private fun ExpiryDialog(existing: ExpiryItem?, onDismiss: () -> Unit, onSave: (
     )
 }
 
-private fun reminderPendingIntent(context: Context, id: Long): PendingIntent {
+internal fun reminderPendingIntent(context: Context, id: Long): PendingIntent {
     val intent = Intent(context, ExpiryAlarmReceiver::class.java).apply { putExtra("id", id) }
     val requestCode = (id xor (id ushr 32)).toInt()
     return PendingIntent.getBroadcast(
