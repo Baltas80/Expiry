@@ -9,6 +9,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -96,11 +97,11 @@ private fun ExpiryApp(scannedBarcode: String?, scannedProductName: String, scann
     val context = LocalContext.current; val r = context.resources; val repository = remember { ExpiryRepository(context.applicationContext) }
     var items by remember { mutableStateOf(repository.all()) }; var search by remember { mutableStateOf("") }; var searching by remember { mutableStateOf(false) }
     var filter by remember { mutableStateOf(Filter.ALL) }; var editing by remember { mutableStateOf<ExpiryItem?>(null) }; var showAdd by remember { mutableStateOf(false) }
-    var showStats by remember { mutableStateOf(false) }; var deleteTarget by remember { mutableStateOf<ExpiryItem?>(null) }; var outcomeTarget by remember { mutableStateOf<ExpiryItem?>(null) }
+    var showStats by remember { mutableStateOf(false) }; var showSettings by remember { mutableStateOf(false) }; var deleteTarget by remember { mutableStateOf<ExpiryItem?>(null) }; var outcomeTarget by remember { mutableStateOf<ExpiryItem?>(null) }
     val filtered = remember(items, search, filter) { items.filter { item -> (search.isBlank() || item.name.contains(search, true) || item.category.contains(search, true) || item.barcode.contains(search, true)) && when (filter) { Filter.ALL -> true; Filter.EXPIRED -> status(item)==ExpiryStatus.EXPIRED; Filter.TODAY -> status(item)==ExpiryStatus.TODAY; Filter.SOON -> status(item)==ExpiryStatus.SOON; Filter.OK -> status(item)==ExpiryStatus.OK } }.sortedWith(compareBy({ when(status(it)){ExpiryStatus.EXPIRED->0;ExpiryStatus.TODAY->1;ExpiryStatus.SOON->2;ExpiryStatus.OK->3} },{it.expiryMillis},{it.name.lowercase(Locale.getDefault())})) }
     val counts = remember(items) { Filter.values().associateWith { f -> items.count { when(f){Filter.ALL->true;Filter.EXPIRED->status(it)==ExpiryStatus.EXPIRED;Filter.TODAY->status(it)==ExpiryStatus.TODAY;Filter.SOON->status(it)==ExpiryStatus.SOON;Filter.OK->status(it)==ExpiryStatus.OK} } } }
     fun label(f: Filter) = when(f){Filter.ALL->r.getString(R.string.all);Filter.EXPIRED->r.getString(R.string.expired);Filter.TODAY->r.getString(R.string.today);Filter.SOON->r.getString(R.string.soon);Filter.OK->r.getString(R.string.in_date)}
-    Scaffold(topBar={TopAppBar(title={if(searching) OutlinedTextField(search,{search=it},placeholder={Text(stringResource(R.string.search_product))},singleLine=true,modifier=Modifier.fillMaxWidth()) else Text(stringResource(R.string.app_name))},actions={IconButton({searching=!searching;if(!searching)search=""}){Icon(Icons.Default.Search,stringResource(R.string.search))};IconButton({showStats=true}){Icon(Icons.Default.BarChart,stringResource(R.string.consumption))};IconButton(onScanBarcode){Icon(Icons.Default.QrCodeScanner,stringResource(R.string.scan_code))}})},floatingActionButton={FloatingActionButton({showAdd=true}){Icon(Icons.Default.Add,stringResource(R.string.add_product))}}){padding->
+    Scaffold(topBar={TopAppBar(title={if(searching) OutlinedTextField(search,{search=it},placeholder={Text(stringResource(R.string.search_product))},singleLine=true,modifier=Modifier.fillMaxWidth()) else Text(stringResource(R.string.app_name))},actions={IconButton({searching=!searching;if(!searching)search=""}){Icon(Icons.Default.Search,stringResource(R.string.search))};IconButton({showStats=true}){Icon(Icons.Default.BarChart,stringResource(R.string.consumption))};IconButton(onScanBarcode){Icon(Icons.Default.QrCodeScanner,stringResource(R.string.scan_code))};IconButton({showSettings=true}){Icon(Icons.Default.Settings,stringResource(R.string.settings))}})},floatingActionButton={FloatingActionButton({showAdd=true}){Icon(Icons.Default.Add,stringResource(R.string.add_product))}}){padding->
         Column(Modifier.fillMaxSize().padding(padding)){Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(12.dp,8.dp),horizontalArrangement=Arrangement.spacedBy(6.dp)){Filter.values().forEach{f->FilterChip(filter==f,{filter=f},label={Text("${label(f)} (${counts[f]?:0})")})}}
             if(filtered.isEmpty()) Column(Modifier.fillMaxSize().padding(24.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.Center){Text(if(items.isEmpty())stringResource(R.string.no_products) else stringResource(R.string.no_matches),style=MaterialTheme.typography.titleMedium);if(items.isEmpty()){Spacer(Modifier.height(8.dp));Text(stringResource(R.string.add_first))}}
             else LazyColumn(Modifier.fillMaxSize().padding(horizontal=12.dp),verticalArrangement=Arrangement.spacedBy(8.dp),contentPadding=PaddingValues(bottom=96.dp)){items(filtered,key={it.id}){item->ExpiryCard(item,{editing=item},{deleteTarget=item},{outcomeTarget=item},r)}}}}
@@ -108,7 +109,34 @@ private fun ExpiryApp(scannedBarcode: String?, scannedProductName: String, scann
     editing?.let{item->ExpiryDialog(item,scannedBarcode?:item.barcode,scannedProductName.ifBlank{item.name},scannedProductCategory.ifBlank{item.category},onScanBarcode,{editing=null;onBarcodeConsumed()}){updated->cancelReminder(context,item.id);repository.save(updated);scheduleReminder(context,updated);items=repository.all();editing=null;onBarcodeConsumed()}}
     deleteTarget?.let{item->AlertDialog(onDismissRequest={deleteTarget=null},title={Text(stringResource(R.string.delete_product))},text={Text(stringResource(R.string.delete_confirm,item.name))},confirmButton={Button({cancelReminder(context,item.id);repository.delete(item.id);items=repository.all();deleteTarget=null}){Text(stringResource(R.string.delete_product))}},dismissButton={TextButton({deleteTarget=null}){Text(stringResource(R.string.cancel))}})}
     outcomeTarget?.let{item->AlertDialog(onDismissRequest={outcomeTarget=null},title={Text(stringResource(R.string.record_result))},text={Text(stringResource(R.string.what_happened,item.name))},confirmButton={Button({repository.recordOutcome(item,OutcomeType.CONSUMED);cancelReminder(context,item.id);repository.delete(item.id);items=repository.all();outcomeTarget=null}){Text(stringResource(R.string.consumed))}},dismissButton={TextButton({repository.recordOutcome(item,OutcomeType.DISCARDED);cancelReminder(context,item.id);repository.delete(item.id);items=repository.all();outcomeTarget=null}){Text(stringResource(R.string.discarded))}})}
-    if(showStats) ConsumptionStatsDialog(items,repository.scanHistory(),repository.outcomeHistory()){showStats=false};LaunchedEffect(scannedBarcode){if(scannedBarcode!=null&&!showAdd&&editing==null)showAdd=true}
+    if(showStats) ConsumptionStatsDialog(items,repository.scanHistory(),repository.outcomeHistory()){showStats=false}
+    if(showSettings) ExpirySettingsDialog(onDismiss={showSettings=false})
+    LaunchedEffect(scannedBarcode){if(scannedBarcode!=null&&!showAdd&&editing==null)showAdd=true}
+}
+
+@Composable private fun ExpirySettingsDialog(onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    val notificationsEnabled = if (Build.VERSION.SDK_INT >= 24) {
+        (context.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager).areNotificationsEnabled()
+    } else true
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(stringResource(R.string.settings_notifications, if (notificationsEnabled) stringResource(R.string.enabled) else stringResource(R.string.disabled)))
+                Text(stringResource(R.string.settings_storage))
+                Text(stringResource(R.string.settings_rewards))
+                Text(stringResource(R.string.settings_version, BuildConfig.VERSION_NAME))
+                if (Build.VERSION.SDK_INT >= 26) {
+                    TextButton(onClick = { context.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply { putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName) }) }) {
+                        Text(stringResource(R.string.settings_open_notifications))
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onDismiss) { Text(stringResource(R.string.close)) } }
+    )
 }
 
 @Composable private fun ExpiryCard(item: ExpiryItem,onEdit:()->Unit,onDelete:()->Unit,onOutcome:()->Unit,r:android.content.res.Resources){Card(Modifier.fillMaxWidth()){Column(Modifier.fillMaxWidth().padding(16.dp)){Row(verticalAlignment=Alignment.CenterVertically){Column(Modifier.weight(1f)){Text(item.name,fontWeight=FontWeight.SemiBold,style=MaterialTheme.typography.titleMedium);if(item.category.isNotBlank())Text(item.category,style=MaterialTheme.typography.bodySmall);Text(r.getString(R.string.expiry_date,dateText(item.expiryMillis)));Text(statusText(item,r),style=MaterialTheme.typography.labelLarge);Text(r.getString(R.string.notice,item.reminderDays),style=MaterialTheme.typography.bodySmall);if(item.barcode.isNotBlank())Text(r.getString(R.string.code,item.barcode),style=MaterialTheme.typography.bodySmall)};IconButton(onEdit){Icon(Icons.Default.Edit,stringResource(R.string.edit_product))};IconButton(onDelete){Icon(Icons.Default.Delete,stringResource(R.string.delete_product))}};Spacer(Modifier.height(8.dp));OutlinedButton(onOutcome,Modifier.fillMaxWidth()){Text(stringResource(R.string.record_consumption_waste))}}}}
