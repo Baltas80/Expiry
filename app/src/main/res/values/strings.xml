@@ -30,6 +30,7 @@
     <string name="what_happened">¿Qué ha ocurrido con %1$s?</string>
     <string name="consumed">Consumido</string>
     <string name="discarded">Desechado</string>
+    <string name="record_consumption_waste">Registrar consumo / desperdicio</string>
     <string name="expiry_date">Caducidad: %1$s</string>
     <string name="notice">Aviso: %1$d días antes</string>
     <string name="code">Código: %1$s</string>
