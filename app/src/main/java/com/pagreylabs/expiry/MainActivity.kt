@@ -31,8 +31,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.google.android.gms.code_scanner.GmsBarcodeScannerOptions
-import com.google.android.gms.code_scanner.GmsBarcodeScanning
+import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import java.text.SimpleDateFormat
 import java.util.*
@@ -142,63 +142,42 @@ private fun ExpiryApp(scannedBarcode: String?, scannedProductName: String, scann
                 }
             } else {
                 LazyColumn(Modifier.fillMaxSize().padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(bottom = 96.dp)) {
-                    items(filtered, key = { it.id }) { item ->
-                        ExpiryCard(item, { editing = item }, { deleteTarget = item }, { outcomeTarget = item })
-                    }
+                    items(filtered, key = { it.id }) { item -> ExpiryCard(item, { editing = item }, { deleteTarget = item }, { outcomeTarget = item }) }
                 }
             }
         }
     }
 
     if (showAdd) ExpiryDialog(null, scannedBarcode ?: "", scannedProductName, scannedProductCategory, onScanBarcode, { showAdd = false; onBarcodeConsumed() }) { item ->
-        repository.save(item)
-        scheduleReminder(context, item)
-        items = repository.all()
-        showAdd = false
-        onBarcodeConsumed()
+        repository.save(item); scheduleReminder(context, item); items = repository.all(); showAdd = false; onBarcodeConsumed()
     }
     editing?.let { item -> ExpiryDialog(item, scannedBarcode ?: item.barcode, scannedProductName.ifBlank { item.name }, scannedProductCategory.ifBlank { item.category }, onScanBarcode, { editing = null; onBarcodeConsumed() }) { updated ->
-        cancelReminder(context, item.id)
-        repository.save(updated)
-        scheduleReminder(context, updated)
-        items = repository.all()
-        editing = null
-        onBarcodeConsumed()
+        cancelReminder(context, item.id); repository.save(updated); scheduleReminder(context, updated); items = repository.all(); editing = null; onBarcodeConsumed()
     } }
     deleteTarget?.let { item -> AlertDialog(onDismissRequest = { deleteTarget = null }, title = { Text("Eliminar producto") }, text = { Text("¿Eliminar ${item.name} de Expiry?") }, confirmButton = { Button(onClick = { cancelReminder(context, item.id); repository.delete(item.id); items = repository.all(); deleteTarget = null }) { Text("Eliminar") } }, dismissButton = { TextButton(onClick = { deleteTarget = null }) { Text("Cancelar") } }) }
-    outcomeTarget?.let { item ->
-        AlertDialog(
-            onDismissRequest = { outcomeTarget = null },
-            title = { Text("Registrar resultado") },
-            text = { Text("¿Qué ha ocurrido con ${item.name}?") },
-            confirmButton = { Button(onClick = { repository.recordOutcome(item, OutcomeType.CONSUMED); cancelReminder(context, item.id); repository.delete(item.id); items = repository.all(); outcomeTarget = null }) { Text("Consumido") } },
-            dismissButton = { TextButton(onClick = { repository.recordOutcome(item, OutcomeType.DISCARDED); cancelReminder(context, item.id); repository.delete(item.id); items = repository.all(); outcomeTarget = null }) { Text("Desechado") } }
-        )
-    }
+    outcomeTarget?.let { item -> AlertDialog(onDismissRequest = { outcomeTarget = null }, title = { Text("Registrar resultado") }, text = { Text("¿Qué ha ocurrido con ${item.name}?") }, confirmButton = { Button(onClick = { repository.recordOutcome(item, OutcomeType.CONSUMED); cancelReminder(context, item.id); repository.delete(item.id); items = repository.all(); outcomeTarget = null }) { Text("Consumido") } }, dismissButton = { TextButton(onClick = { repository.recordOutcome(item, OutcomeType.DISCARDED); cancelReminder(context, item.id); repository.delete(item.id); items = repository.all(); outcomeTarget = null }) { Text("Desechado") } }) }
     if (showStats) ConsumptionStatsDialog(items, repository.scanHistory(), repository.outcomeHistory()) { showStats = false }
     LaunchedEffect(scannedBarcode) { if (scannedBarcode != null && !showAdd && editing == null) showAdd = true }
 }
 
 @Composable
 private fun ExpiryCard(item: ExpiryItem, onEdit: () -> Unit, onDelete: () -> Unit, onOutcome: () -> Unit) {
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.fillMaxWidth().padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(item.name, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleMedium)
-                    if (item.category.isNotBlank()) Text(item.category, style = MaterialTheme.typography.bodySmall)
-                    Text("Caducidad: ${dateText(item.expiryMillis)}", style = MaterialTheme.typography.bodyMedium)
-                    Text(statusText(item), style = MaterialTheme.typography.labelLarge)
-                    Text("Aviso: ${item.reminderDays} días antes", style = MaterialTheme.typography.bodySmall)
-                    if (item.barcode.isNotBlank()) Text("Código: ${item.barcode}", style = MaterialTheme.typography.bodySmall)
-                }
-                IconButton(onClick = onEdit) { Icon(Icons.Default.Edit, "Editar") }
-                IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, "Eliminar") }
+    Card(Modifier.fillMaxWidth()) { Column(Modifier.fillMaxWidth().padding(16.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(item.name, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleMedium)
+                if (item.category.isNotBlank()) Text(item.category, style = MaterialTheme.typography.bodySmall)
+                Text("Caducidad: ${dateText(item.expiryMillis)}", style = MaterialTheme.typography.bodyMedium)
+                Text(statusText(item), style = MaterialTheme.typography.labelLarge)
+                Text("Aviso: ${item.reminderDays} días antes", style = MaterialTheme.typography.bodySmall)
+                if (item.barcode.isNotBlank()) Text("Código: ${item.barcode}", style = MaterialTheme.typography.bodySmall)
             }
-            Spacer(Modifier.height(8.dp))
-            OutlinedButton(onClick = onOutcome, modifier = Modifier.fillMaxWidth()) { Text("Registrar consumo / desperdicio") }
+            IconButton(onClick = onEdit) { Icon(Icons.Default.Edit, "Editar") }
+            IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, "Eliminar") }
         }
-    }
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(onClick = onOutcome, modifier = Modifier.fillMaxWidth()) { Text("Registrar consumo / desperdicio") }
+    } }
 }
 
 @Composable
@@ -230,12 +209,11 @@ private fun ConsumptionStatsDialog(items: List<ExpiryItem>, scans: List<ScanEven
     val consumed = outcomes.count { it.outcome == OutcomeType.CONSUMED }
     val discarded = outcomes.count { it.outcome == OutcomeType.DISCARDED }
     val outcomeTotal = consumed + discarded
-    val discardRate = if (outcomeTotal == 0) 0 else (discarded * 100 / outcomeTotal)
+    val discardRate = if (outcomeTotal == 0) 0 else discarded * 100 / outcomeTotal
     val scanCounts = scans.groupingBy { it.barcode }.eachCount().entries.sortedByDescending { it.value }.take(5)
     val names = scanCounts.map { (barcode, count) -> (items.firstOrNull { it.barcode == barcode }?.name ?: barcode) to count }
     val categories = items.filter { it.category.isNotBlank() }.groupingBy { it.category }.eachCount().entries.sortedByDescending { it.value }.take(5)
     val discardedNames = outcomes.filter { it.outcome == OutcomeType.DISCARDED }.groupingBy { it.name }.eachCount().entries.sortedByDescending { it.value }.take(5)
-
     AlertDialog(onDismissRequest = onDismiss, title = { Text("Consumo y desperdicio") }, text = {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Productos activos: ${items.size}")
@@ -257,16 +235,6 @@ internal fun reminderPendingIntent(context: Context, id: Long): PendingIntent {
     val requestCode = (id xor (id ushr 32)).toInt()
     return PendingIntent.getBroadcast(context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 }
-
-private fun scheduleReminder(context: Context, item: ExpiryItem) {
-    val trigger = item.expiryMillis - item.reminderDays * 86_400_000L
-    if (trigger <= System.currentTimeMillis()) return
-    (context.getSystemService(Context.ALARM_SERVICE) as AlarmManager).setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, trigger, reminderPendingIntent(context, item.id))
-}
-
-private fun cancelReminder(context: Context, id: Long) {
-    (context.getSystemService(Context.ALARM_SERVICE) as AlarmManager).cancel(reminderPendingIntent(context, id))
-}
-
-@Composable
-private fun ExpiryTheme(content: @Composable () -> Unit) { MaterialTheme(content = content) }
+private fun scheduleReminder(context: Context, item: ExpiryItem) { val trigger = item.expiryMillis - item.reminderDays * 86_400_000L; if (trigger <= System.currentTimeMillis()) return; (context.getSystemService(Context.ALARM_SERVICE) as AlarmManager).setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, trigger, reminderPendingIntent(context, item.id)) }
+private fun cancelReminder(context: Context, id: Long) { (context.getSystemService(Context.ALARM_SERVICE) as AlarmManager).cancel(reminderPendingIntent(context, id)) }
+@Composable private fun ExpiryTheme(content: @Composable () -> Unit) { MaterialTheme(content = content) }
