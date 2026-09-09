@@ -3,6 +3,7 @@ package com.pagreylabs.expiry
 import android.content.Context
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.UUID
 
 class ExpiryRepository(context: Context) {
     private val prefs = context.getSharedPreferences("expiry_store", Context.MODE_PRIVATE)
@@ -30,7 +31,6 @@ class ExpiryRepository(context: Context) {
         prefs.edit().putString("items", array.toString()).apply()
     }
 
-    /** Records a local barcode scan timestamp. No scan history is uploaded. */
     fun recordScan(barcode: String, timestamp: Long = System.currentTimeMillis()) {
         if (barcode.isBlank()) return
         val raw = prefs.getString("scan_history", "[]") ?: "[]"
@@ -75,19 +75,48 @@ class ExpiryRepository(context: Context) {
         return buildList {
             for (i in 0 until array.length()) {
                 val o = array.getJSONObject(i)
-                add(
-                    OutcomeEvent(
-                        o.getLong("itemId"),
-                        o.optString("barcode"),
-                        o.optString("name", "Producto"),
-                        o.optString("category"),
-                        runCatching { OutcomeType.valueOf(o.optString("outcome")) }.getOrDefault(OutcomeType.CONSUMED),
-                        o.getLong("timestamp")
-                    )
-                )
+                add(OutcomeEvent(
+                    o.getLong("itemId"), o.optString("barcode"), o.optString("name", "Producto"),
+                    o.optString("category"),
+                    runCatching { OutcomeType.valueOf(o.optString("outcome")) }.getOrDefault(OutcomeType.CONSUMED),
+                    o.getLong("timestamp")
+                ))
             }
         }
     }
+
+    /** Creates a stable anonymous installation identifier locally. */
+    fun userId(): String = prefs.getString("user_id", null) ?: UUID.randomUUID().toString().also {
+        prefs.edit().putString("user_id", it).apply()
+    }
+
+    fun userProfile(): ExpiryUserProfile {
+        val raw = prefs.getString("user_profile", null)
+        if (raw.isNullOrBlank()) {
+            val profile = ExpiryUserProfile(userId = userId(), timezone = java.util.TimeZone.getDefault().id)
+            saveUserProfile(profile)
+            return profile
+        }
+        val o = JSONObject(raw)
+        return ExpiryUserProfile(
+            userId = o.optString("userId", userId()),
+            displayName = o.optString("displayName"), email = o.optString("email"), phone = o.optString("phone"),
+            birthDate = o.optString("birthDate"), country = o.optString("country"), city = o.optString("city"),
+            postalCode = o.optString("postalCode"), language = o.optString("language", "es"),
+            timezone = o.optString("timezone", java.util.TimeZone.getDefault().id),
+            marketingConsent = o.optBoolean("marketingConsent"),
+            analyticsConsent = o.optBoolean("analyticsConsent"), syncConsent = o.optBoolean("syncConsent")
+        )
+    }
+
+    fun saveUserProfile(profile: ExpiryUserProfile) {
+        prefs.edit().putString("user_id", profile.userId).putString("user_profile", profile.toJson().toString()).apply()
+    }
+
+    /** Server-ready export. Consumption history is kept local by default. */
+    fun cloudSnapshot(): ExpiryCloudSnapshot = ExpiryCloudSnapshot(
+        user = userProfile(), products = all(), scanHistory = scanHistory(), outcomeHistory = outcomeHistory()
+    )
 
     companion object {
         private const val MAX_SCAN_HISTORY = 500
