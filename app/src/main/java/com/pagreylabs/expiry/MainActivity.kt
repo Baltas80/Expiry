@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -29,11 +30,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.google.android.gms.code_scanner.GmsBarcodeScannerOptions
+import com.google.android.gms.code_scanner.GmsBarcodeScanning
+import com.google.mlkit.vision.barcode.common.Barcode
 import java.text.SimpleDateFormat
 import java.util.*
 
 class MainActivity : ComponentActivity() {
     private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    private var scannedBarcode by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -42,7 +47,30 @@ class MainActivity : ComponentActivity() {
         ) {
             notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
-        setContent { ExpiryTheme { ExpiryApp() } }
+        setContent {
+            ExpiryTheme {
+                ExpiryApp(
+                    scannedBarcode = scannedBarcode,
+                    onScanBarcode = { launchBarcodeScanner() },
+                    onBarcodeConsumed = { scannedBarcode = null }
+                )
+            }
+        }
+    }
+
+    private fun launchBarcodeScanner() {
+        val options = GmsBarcodeScannerOptions.Builder()
+            .setBarcodeFormats(Barcode.FORMAT_ALL_FORMATS)
+            .enableAutoZoom()
+            .build()
+        GmsBarcodeScanning.getClient(this, options)
+            .startScan()
+            .addOnSuccessListener { barcode ->
+                barcode.rawValue?.trim()?.takeIf { it.isNotEmpty() }?.let {
+                    scannedBarcode = it
+                    ExpiryRepository(applicationContext).recordScan(it)
+                }
+            }
     }
 }
 
@@ -111,7 +139,11 @@ private fun filterLabel(filter: Filter) = when (filter) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ExpiryApp() {
+private fun ExpiryApp(
+    scannedBarcode: String?,
+    onScanBarcode: () -> Unit,
+    onBarcodeConsumed: () -> Unit
+) {
     val context = LocalContext.current
     val repository = remember { ExpiryRepository(context.applicationContext) }
     var items by remember { mutableStateOf(repository.all()) }
@@ -124,7 +156,7 @@ private fun ExpiryApp() {
 
     val filtered = remember(items, search, filter) {
         items.filter { item ->
-            val matchesSearch = search.isBlank() || item.name.contains(search, true) || item.category.contains(search, true)
+            val matchesSearch = search.isBlank() || item.name.contains(search, true) || item.category.contains(search, true) || item.barcode.contains(search, true)
             val matchesFilter = when (filter) {
                 Filter.ALL -> true
                 Filter.EXPIRED -> status(item) == ExpiryStatus.EXPIRED
@@ -174,6 +206,9 @@ private fun ExpiryApp() {
                 actions = {
                     IconButton(onClick = { searching = !searching; if (!searching) search = "" }) {
                         Icon(Icons.Default.Search, "Buscar")
+                    }
+                    IconButton(onClick = { showAdd = true }) {
+                        Icon(Icons.Default.QrCodeScanner, "Escanear código")
                     }
                 }
             )
@@ -230,12 +265,15 @@ private fun ExpiryApp() {
     if (showAdd) {
         ExpiryDialog(
             existing = null,
-            onDismiss = { showAdd = false },
+            initialBarcode = scannedBarcode ?: "",
+            onScanBarcode = onScanBarcode,
+            onDismiss = { showAdd = false; onBarcodeConsumed() },
             onSave = { item ->
                 repository.save(item)
                 scheduleReminder(context, item)
                 items = repository.all()
                 showAdd = false
+                onBarcodeConsumed()
             }
         )
     }
@@ -243,13 +281,16 @@ private fun ExpiryApp() {
     editing?.let { item ->
         ExpiryDialog(
             existing = item,
-            onDismiss = { editing = null },
+            initialBarcode = scannedBarcode ?: item.barcode,
+            onScanBarcode = onScanBarcode,
+            onDismiss = { editing = null; onBarcodeConsumed() },
             onSave = { updated ->
                 cancelReminder(context, item.id)
                 repository.save(updated)
                 scheduleReminder(context, updated)
                 items = repository.all()
                 editing = null
+                onBarcodeConsumed()
             }
         )
     }
@@ -270,6 +311,10 @@ private fun ExpiryApp() {
             dismissButton = { TextButton(onClick = { deleteTarget = null }) { Text("Cancelar") } }
         )
     }
+
+    LaunchedEffect(scannedBarcode) {
+        if (scannedBarcode != null && !showAdd && editing == null) showAdd = true
+    }
 }
 
 @Composable
@@ -282,6 +327,7 @@ private fun ExpiryCard(item: ExpiryItem, onEdit: () -> Unit, onDelete: () -> Uni
                 Text("Caducidad: ${dateText(item.expiryMillis)}", style = MaterialTheme.typography.bodyMedium)
                 Text(statusText(item), style = MaterialTheme.typography.labelLarge)
                 Text("Aviso: ${item.reminderDays} días antes", style = MaterialTheme.typography.bodySmall)
+                if (item.barcode.isNotBlank()) Text("Código: ${item.barcode}", style = MaterialTheme.typography.bodySmall)
             }
             IconButton(onClick = onEdit) { Icon(Icons.Default.Edit, "Editar") }
             IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, "Eliminar") }
@@ -290,10 +336,17 @@ private fun ExpiryCard(item: ExpiryItem, onEdit: () -> Unit, onDelete: () -> Uni
 }
 
 @Composable
-private fun ExpiryDialog(existing: ExpiryItem?, onDismiss: () -> Unit, onSave: (ExpiryItem) -> Unit) {
+private fun ExpiryDialog(
+    existing: ExpiryItem?,
+    initialBarcode: String,
+    onScanBarcode: () -> Unit,
+    onDismiss: () -> Unit,
+    onSave: (ExpiryItem) -> Unit
+) {
     val context = LocalContext.current
     var name by remember(existing?.id) { mutableStateOf(existing?.name ?: "") }
     var category by remember(existing?.id) { mutableStateOf(existing?.category ?: "") }
+    var barcode by remember(existing?.id, initialBarcode) { mutableStateOf(initialBarcode) }
     var reminder by remember(existing?.id) { mutableStateOf((existing?.reminderDays ?: 7).toString()) }
     var date by remember(existing?.id) { mutableLongStateOf(existing?.expiryMillis ?: System.currentTimeMillis()) }
     var error by remember(existing?.id) { mutableStateOf(false) }
@@ -319,6 +372,23 @@ private fun ExpiryDialog(existing: ExpiryItem?, onDismiss: () -> Unit, onSave: (
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
+                OutlinedTextField(
+                    value = barcode,
+                    onValueChange = { barcode = it },
+                    label = { Text("Código de barras (opcional)") },
+                    singleLine = true,
+                    trailingIcon = {
+                        IconButton(onClick = onScanBarcode) {
+                            Icon(Icons.Default.QrCodeScanner, "Escanear código")
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Button(onClick = onScanBarcode, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Default.QrCodeScanner, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Escanear código")
+                }
                 Button(
                     onClick = {
                         val c = Calendar.getInstance().apply { timeInMillis = date }
@@ -351,7 +421,7 @@ private fun ExpiryDialog(existing: ExpiryItem?, onDismiss: () -> Unit, onSave: (
                     return@Button
                 }
                 val id = existing?.id ?: UUID.randomUUID().mostSignificantBits
-                onSave(ExpiryItem(id, name.trim(), category.trim(), date, reminder.toIntOrNull()?.coerceIn(0, 365) ?: 7))
+                onSave(ExpiryItem(id, name.trim(), category.trim(), date, reminder.toIntOrNull()?.coerceIn(0, 365) ?: 7, barcode.trim()))
             }) { Text("Guardar") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
