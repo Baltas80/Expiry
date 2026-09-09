@@ -4,8 +4,6 @@ import java.util.Calendar
 
 /** Date-only helpers used for expiry/reminder calculations. */
 object ExpiryDateUtils {
-    private const val MILLIS_PER_DAY = 86_400_000L
-
     fun startOfToday(now: Long = System.currentTimeMillis()): Calendar =
         Calendar.getInstance().apply {
             timeInMillis = now
@@ -15,10 +13,7 @@ object ExpiryDateUtils {
             set(Calendar.MILLISECOND, 0)
         }
 
-    /**
-     * Returns calendar-day distance, avoiding the DST bug caused by dividing
-     * epoch milliseconds by 24 hours.
-     */
+    /** Returns calendar-day distance without assuming every day has 24 hours. */
     fun daysUntil(expiryMillis: Long, now: Long = System.currentTimeMillis()): Int {
         val today = startOfToday(now)
         val expiry = Calendar.getInstance().apply {
@@ -39,6 +34,6 @@ object ExpiryDateUtils {
     }
 
     private fun calendarDayNumber(calendar: Calendar): Int {
-        return (calendar.timeInMillis / MILLIS_PER_DAY).toInt()
+        return calendar.get(Calendar.YEAR) * 366 + calendar.get(Calendar.DAY_OF_YEAR)
     }
 }
