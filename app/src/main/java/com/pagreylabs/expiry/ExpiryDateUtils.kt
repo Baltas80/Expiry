@@ -30,10 +30,19 @@ object ExpiryDateUtils {
     }
 
     /**
-     * Returns a local daytime reminder trigger, never midnight.
-     * The calendar date is shifted first so DST changes do not turn a day into
-     * a fixed 24-hour duration, then the reminder is placed at 10:00 local time.
+     * Normalizes a selected expiry calendar date to the fixed daytime reminder hour.
+     * The displayed date remains unchanged; only the internal time-of-day is normalized.
      */
+    fun normalizeExpiryTime(expiryMillis: Long): Long =
+        Calendar.getInstance().apply {
+            timeInMillis = expiryMillis
+            set(Calendar.HOUR_OF_DAY, REMINDER_HOUR)
+            set(Calendar.MINUTE, REMINDER_MINUTE)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
+
+    /** Returns the reminder date at the daytime reminder hour, using calendar days. */
     fun reminderTrigger(expiryMillis: Long, reminderDays: Int): Long {
         val calendar = Calendar.getInstance().apply { timeInMillis = expiryMillis }
         calendar.add(Calendar.DAY_OF_YEAR, -reminderDays.coerceIn(0, 365))
