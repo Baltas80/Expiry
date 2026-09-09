@@ -56,4 +56,6 @@
     <string name="notification_channel">Caducidades</string>
     <string name="notification_title">Expiry: aviso de caducidad</string>
     <string name="notification_text">%1$s caduca pronto</string>
+    <string name="product_not_found">Producto no encontrado. Puedes introducir sus datos manualmente.</string>
+    <string name="product_lookup_error">No se pudo consultar el producto. Puedes introducir sus datos manualmente.</string>
 </resources>
