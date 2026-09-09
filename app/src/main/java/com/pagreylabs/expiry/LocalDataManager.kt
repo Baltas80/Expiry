@@ -1,6 +1,9 @@
 package com.pagreylabs.expiry
 
+import android.app.AlarmManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 
 /**
  * Internal local data controls for future privacy settings and account tooling.
@@ -22,8 +25,28 @@ class LocalDataManager(context: Context) {
         )
     }
 
-    /** Deletes application-managed local data without contacting any server. */
+    /**
+     * Deletes application-managed local data without contacting any server.
+     * Scheduled expiry alarms are cancelled before the persisted inventory is removed.
+     */
     fun deleteAllLocalData() {
+        val repository = ExpiryRepository(appContext)
+        val alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        repository.all().forEach { item ->
+            val intent = Intent(appContext, ExpiryAlarmReceiver::class.java).apply {
+                putExtra("id", item.id)
+            }
+            val requestCode = (item.id xor (item.id ushr 32)).toInt()
+            val pendingIntent = PendingIntent.getBroadcast(
+                appContext,
+                requestCode,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            alarmManager.cancel(pendingIntent)
+            pendingIntent.cancel()
+        }
+
         appContext.getSharedPreferences("expiry_store", Context.MODE_PRIVATE)
             .edit().clear().apply()
         appContext.getSharedPreferences("expiry_rewards", Context.MODE_PRIVATE)
