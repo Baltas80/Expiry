@@ -20,11 +20,12 @@ class ExpiryRepository(context: Context) {
     fun get(id: Long): ExpiryItem? = all().firstOrNull { it.id == id }
 
     fun save(item: ExpiryItem) {
-        val items = all().filterNot { it.id == item.id } + item
+        val normalized = item.copy(expiryMillis = ExpiryDateUtils.normalizeExpiryTime(item.expiryMillis))
+        val items = all().filterNot { it.id == normalized.id } + normalized
         val array = JSONArray()
         items.forEach { array.put(it.toJson()) }
         prefs.edit().putString("items", array.toString()).apply()
-        rememberProduct(item.barcode, item.name, item.category)
+        rememberProduct(normalized.barcode, normalized.name, normalized.category)
     }
 
     fun delete(id: Long) {
