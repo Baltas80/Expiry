@@ -11,17 +11,8 @@ class BootReceiver : BroadcastReceiver() {
         repository.all().forEach { item ->
             val trigger = item.expiryMillis - item.reminderDays * 86_400_000L
             if (trigger > System.currentTimeMillis()) {
-                val alarmIntent = Intent(context, ExpiryAlarmReceiver::class.java).apply {
-                    putExtra("name", item.name)
-                    putExtra("id", item.id)
-                }
-                val requestCode = (item.id xor (item.id ushr 32)).toInt()
-                val pending = android.app.PendingIntent.getBroadcast(
-                    context, requestCode, alarmIntent,
-                    android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
-                )
                 val alarm = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
-                alarm.setAndAllowWhileIdle(android.app.AlarmManager.RTC_WAKEUP, trigger, pending)
+                alarm.setAndAllowWhileIdle(android.app.AlarmManager.RTC_WAKEUP, trigger, reminderPendingIntent(context, item.id))
             }
         }
     }
