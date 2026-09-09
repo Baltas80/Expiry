@@ -8,6 +8,7 @@ import java.util.UUID
 
 class ExpiryRepository(context: Context) {
     private val prefs = context.getSharedPreferences("expiry_store", Context.MODE_PRIVATE)
+    private val outcomePrefs = context.getSharedPreferences("expiry_local_outcomes", Context.MODE_PRIVATE)
 
     fun all(): List<ExpiryItem> {
         val raw = prefs.getString("items", "[]") ?: "[]"
@@ -73,7 +74,8 @@ class ExpiryRepository(context: Context) {
     }
 
     fun recordOutcome(item: ExpiryItem, outcome: OutcomeType, timestamp: Long = System.currentTimeMillis()) {
-        val raw = prefs.getString("outcome_history", "[]") ?: "[]"
+        migrateLegacyOutcomeHistory()
+        val raw = outcomePrefs.getString("history", "[]") ?: "[]"
         val array = JSONArray(raw)
         array.put(JSONObject().apply {
             put("itemId", item.id)
@@ -84,12 +86,13 @@ class ExpiryRepository(context: Context) {
             put("timestamp", timestamp)
         })
         while (array.length() > MAX_OUTCOME_HISTORY) array.remove(0)
-        prefs.edit().putString("outcome_history", array.toString()).apply()
+        outcomePrefs.edit().putString("history", array.toString()).apply()
         rememberProduct(item.barcode, item.name, item.category)
     }
 
     fun outcomeHistory(): List<OutcomeEvent> {
-        val raw = prefs.getString("outcome_history", "[]") ?: "[]"
+        migrateLegacyOutcomeHistory()
+        val raw = outcomePrefs.getString("history", "[]") ?: "[]"
         val array = JSONArray(raw)
         return buildList {
             for (i in 0 until array.length()) {
@@ -151,6 +154,13 @@ class ExpiryRepository(context: Context) {
     fun cloudSnapshot(): ExpiryCloudSnapshot = ExpiryCloudSnapshot(
         user = userProfile(), products = all(), scanHistory = scanHistory()
     )
+
+    private fun migrateLegacyOutcomeHistory() {
+        if (outcomePrefs.contains("history")) return
+        val legacy = prefs.getString("outcome_history", null) ?: return
+        outcomePrefs.edit().putString("history", legacy).apply()
+        prefs.edit().remove("outcome_history").apply()
+    }
 
     private fun fiveYearsAfter(timestamp: Long): Long {
         return Calendar.getInstance().apply {
