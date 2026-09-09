@@ -30,7 +30,7 @@ class ExpiryRepository(context: Context) {
         prefs.edit().putString("items", array.toString()).apply()
     }
 
-    /** Records a local scan timestamp. No scan history is uploaded. */
+    /** Records a local barcode scan timestamp. No scan history is uploaded. */
     fun recordScan(barcode: String, timestamp: Long = System.currentTimeMillis()) {
         if (barcode.isBlank()) return
         val raw = prefs.getString("scan_history", "[]") ?: "[]"
@@ -54,9 +54,56 @@ class ExpiryRepository(context: Context) {
         }
     }
 
+    fun recordOutcome(item: ExpiryItem, outcome: OutcomeType, timestamp: Long = System.currentTimeMillis()) {
+        val raw = prefs.getString("outcome_history", "[]") ?: "[]"
+        val array = JSONArray(raw)
+        array.put(JSONObject().apply {
+            put("itemId", item.id)
+            put("barcode", item.barcode)
+            put("name", item.name)
+            put("category", item.category)
+            put("outcome", outcome.name)
+            put("timestamp", timestamp)
+        })
+        while (array.length() > MAX_OUTCOME_HISTORY) array.remove(0)
+        prefs.edit().putString("outcome_history", array.toString()).apply()
+    }
+
+    fun outcomeHistory(): List<OutcomeEvent> {
+        val raw = prefs.getString("outcome_history", "[]") ?: "[]"
+        val array = JSONArray(raw)
+        return buildList {
+            for (i in 0 until array.length()) {
+                val o = array.getJSONObject(i)
+                add(
+                    OutcomeEvent(
+                        o.getLong("itemId"),
+                        o.optString("barcode"),
+                        o.optString("name", "Producto"),
+                        o.optString("category"),
+                        runCatching { OutcomeType.valueOf(o.optString("outcome")) }.getOrDefault(OutcomeType.CONSUMED),
+                        o.getLong("timestamp")
+                    )
+                )
+            }
+        }
+    }
+
     companion object {
         private const val MAX_SCAN_HISTORY = 500
+        private const val MAX_OUTCOME_HISTORY = 500
     }
 }
 
 data class ScanEvent(val barcode: String, val timestamp: Long)
+
+enum class OutcomeType { CONSUMED, DISCARDED }
+
+data class OutcomeEvent(
+    val itemId: Long,
+    val barcode: String,
+    val name: String,
+    val category: String,
+    val outcome: OutcomeType,
+    val timestamp: Long
+)
