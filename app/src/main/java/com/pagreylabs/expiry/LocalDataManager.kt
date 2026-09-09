@@ -49,6 +49,8 @@ class LocalDataManager(context: Context) {
 
         appContext.getSharedPreferences("expiry_store", Context.MODE_PRIVATE)
             .edit().clear().apply()
+        appContext.getSharedPreferences("expiry_local_outcomes", Context.MODE_PRIVATE)
+            .edit().clear().apply()
         appContext.getSharedPreferences("expiry_rewards", Context.MODE_PRIVATE)
             .edit().clear().apply()
     }
