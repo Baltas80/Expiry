@@ -7,7 +7,11 @@ import java.net.URL
 
 /** Lightweight Open Food Facts lookup. Runs off the main thread. */
 object ProductLookup {
-    data class Result(val name: String, val category: String)
+    data class Result(
+        val found: Boolean,
+        val name: String = "",
+        val category: String = ""
+    )
 
     fun lookup(barcode: String, callback: (Result?) -> Unit) {
         Thread {
@@ -22,11 +26,13 @@ object ProductLookup {
                 try {
                     if (connection.responseCode !in 200..299) return@runCatching null
                     val root = JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
-                    if (root.optInt("status", 0) != 1) return@runCatching null
-                    val product = root.optJSONObject("product") ?: return@runCatching null
+                    if (root.optInt("status", 0) != 1) {
+                        return@runCatching Result(found = false)
+                    }
+                    val product = root.optJSONObject("product") ?: return@runCatching Result(found = false)
                     val name = product.optString("product_name_es").ifBlank { product.optString("product_name") }
                     val category = product.optString("categories").split(',').firstOrNull()?.trim().orEmpty()
-                    name.takeIf { it.isNotBlank() }?.let { Result(it, category) }
+                    Result(found = true, name = name, category = category)
                 } finally {
                     connection.disconnect()
                 }
