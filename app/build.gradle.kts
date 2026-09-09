@@ -37,4 +37,6 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
     implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
+
+    testImplementation("junit:junit:4.13.2")
 }
