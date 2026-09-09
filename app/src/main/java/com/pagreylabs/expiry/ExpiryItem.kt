@@ -7,7 +7,8 @@ data class ExpiryItem(
     val name: String,
     val category: String,
     val expiryMillis: Long,
-    val reminderDays: Int = 7
+    val reminderDays: Int = 7,
+    val barcode: String = ""
 ) {
     fun toJson() = JSONObject().apply {
         put("id", id)
@@ -15,6 +16,7 @@ data class ExpiryItem(
         put("category", category)
         put("expiryMillis", expiryMillis)
         put("reminderDays", reminderDays)
+        put("barcode", barcode)
     }
 
     companion object {
@@ -23,7 +25,8 @@ data class ExpiryItem(
             o.getString("name"),
             o.optString("category"),
             o.getLong("expiryMillis"),
-            o.optInt("reminderDays", 7)
+            o.optInt("reminderDays", 7),
+            o.optString("barcode")
         )
     }
 }
