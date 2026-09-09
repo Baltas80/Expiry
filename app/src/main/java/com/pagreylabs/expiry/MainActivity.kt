@@ -120,4 +120,4 @@ private fun ExpiryApp(scannedBarcode: String?, scannedProductName: String, scann
 internal fun reminderPendingIntent(context:Context,id:Long):PendingIntent{val intent=Intent(context,ExpiryAlarmReceiver::class.java).apply{putExtra("id",id)};val requestCode=(id xor(id ushr 32)).toInt();return PendingIntent.getBroadcast(context,requestCode,intent,PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)}
 private fun scheduleReminder(context:Context,item:ExpiryItem){val trigger=ExpiryDateUtils.reminderTrigger(item.expiryMillis,item.reminderDays);if(trigger<=System.currentTimeMillis())return;(context.getSystemService(Context.ALARM_SERVICE) as AlarmManager).setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,trigger,reminderPendingIntent(context,item.id))}
 private fun cancelReminder(context:Context,id:Long){(context.getSystemService(Context.ALARM_SERVICE) as AlarmManager).cancel(reminderPendingIntent(context,id))}
-@Composable private fun ExpiryTheme(content:@Composable()->Unit){MaterialTheme(content=content)}
+@Composable private fun ExpiryTheme(content: @Composable () -> Unit){MaterialTheme(content = content)}
