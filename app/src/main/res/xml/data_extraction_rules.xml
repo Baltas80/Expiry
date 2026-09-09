@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules>
+    <cloud-backup>
+        <!-- Consumption/waste history stays local and is never included in cloud backup. -->
+        <exclude domain="sharedpref" path="expiry_local_outcomes.xml" />
+        <!-- Rewards are inactive infrastructure and should not be backed up. -->
+        <exclude domain="sharedpref" path="expiry_rewards.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <!-- Keep local history available when the user directly moves to a new device. -->
+    </device-transfer>
+</data-extraction-rules>
