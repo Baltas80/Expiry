@@ -14,6 +14,10 @@ class ExpiryAlarmReceiver : BroadcastReceiver() {
         if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return
         val itemId = intent.getLongExtra("id", Long.MIN_VALUE)
         val item = if (itemId != Long.MIN_VALUE) ExpiryRepository(context.applicationContext).get(itemId) else null
+
+        // An item-specific alarm can outlive a deletion/edit race. Do not notify for stale alarms.
+        if (itemId != Long.MIN_VALUE && item == null) return
+
         val name = item?.name ?: intent.getStringExtra("name") ?: context.getString(R.string.product)
         val notificationId = if (itemId != Long.MIN_VALUE) (itemId xor (itemId ushr 32)).toInt() else System.currentTimeMillis().toInt()
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
