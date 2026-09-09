@@ -14,6 +14,8 @@ class ExpiryRepository(context: Context) {
         }.sortedBy { it.expiryMillis }
     }
 
+    fun get(id: Long): ExpiryItem? = all().firstOrNull { it.id == id }
+
     fun save(item: ExpiryItem) {
         val items = all().filterNot { it.id == item.id } + item
         val array = JSONArray()
