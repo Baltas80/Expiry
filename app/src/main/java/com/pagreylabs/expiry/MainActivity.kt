@@ -10,9 +10,11 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -27,7 +29,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import java.text.SimpleDateFormat
 import java.util.*
-import kotlin.math.max
 
 class MainActivity : ComponentActivity() {
     private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
@@ -41,36 +42,66 @@ class MainActivity : ComponentActivity() {
 
 private enum class ExpiryStatus { EXPIRED, TODAY, SOON, OK }
 
+private fun startOfToday(): Calendar = Calendar.getInstance().apply {
+    set(Calendar.HOUR_OF_DAY, 0)
+    set(Calendar.MINUTE, 0)
+    set(Calendar.SECOND, 0)
+    set(Calendar.MILLISECOND, 0)
+}
+
 private fun status(item: ExpiryItem): ExpiryStatus {
-    val now = Calendar.getInstance()
-    val startToday = Calendar.getInstance().apply {
-        set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
-    }
+    val now = System.currentTimeMillis()
+    val today = startOfToday()
     val target = Calendar.getInstance().apply { timeInMillis = item.expiryMillis }
-    val days = ((target.timeInMillis - startToday.timeInMillis) / 86_400_000L).toInt()
+    val targetDay = Calendar.getInstance().apply {
+        set(Calendar.YEAR, target.get(Calendar.YEAR))
+        set(Calendar.DAY_OF_YEAR, target.get(Calendar.DAY_OF_YEAR))
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }
+    val days = ((targetDay.timeInMillis - today.timeInMillis) / 86_400_000L).toInt()
     return when {
-        days < 0 -> ExpiryStatus.EXPIRED
+        item.expiryMillis < now -> ExpiryStatus.EXPIRED
         days == 0 -> ExpiryStatus.TODAY
-        days <= 7 -> ExpiryStatus.SOON
+        days in 1..7 -> ExpiryStatus.SOON
         else -> ExpiryStatus.OK
     }
 }
 
-private fun statusText(item: ExpiryItem) = when (status(item)) {
+private fun daysUntil(millis: Long): Int {
+    val today = startOfToday()
+    val target = Calendar.getInstance().apply { timeInMillis = millis }
+    val targetDay = Calendar.getInstance().apply {
+        set(Calendar.YEAR, target.get(Calendar.YEAR))
+        set(Calendar.DAY_OF_YEAR, target.get(Calendar.DAY_OF_YEAR))
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }
+    return ((targetDay.timeInMillis - today.timeInMillis) / 86_400_000L).toInt()
+}
+
+private fun statusText(item: ExpiryItem): String = when (status(item)) {
     ExpiryStatus.EXPIRED -> "Caducado"
     ExpiryStatus.TODAY -> "Caduca hoy"
     ExpiryStatus.SOON -> "Caduca en ${daysUntil(item.expiryMillis)} días"
     ExpiryStatus.OK -> "En plazo"
 }
 
-private fun daysUntil(millis: Long): Int {
-    val start = Calendar.getInstance().apply { set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }
-    return max(0, ((millis - start.timeInMillis) / 86_400_000L).toInt())
-}
-
 private fun dateText(millis: Long) = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(millis))
 
 private enum class Filter { ALL, EXPIRED, TODAY, SOON, OK }
+
+private fun filterLabel(filter: Filter) = when (filter) {
+    Filter.ALL -> "Todos"
+    Filter.EXPIRED -> "Caducados"
+    Filter.TODAY -> "Hoy"
+    Filter.SOON -> "Próximos"
+    Filter.OK -> "En plazo"
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -96,27 +127,92 @@ private fun ExpiryApp() {
                 Filter.OK -> status(item) == ExpiryStatus.OK
             }
             matchesSearch && matchesFilter
+        }.sortedWith(compareBy<ExpiryItem>({
+            when (status(it)) {
+                ExpiryStatus.EXPIRED -> 0
+                ExpiryStatus.TODAY -> 1
+                ExpiryStatus.SOON -> 2
+                ExpiryStatus.OK -> 3
+            }
+        }, { it.expiryMillis }, { it.name.lowercase(Locale.getDefault()) }))
+    }
+
+    val counts = remember(items) {
+        Filter.values().associateWith { f ->
+            items.count { item ->
+                when (f) {
+                    Filter.ALL -> true
+                    Filter.EXPIRED -> status(item) == ExpiryStatus.EXPIRED
+                    Filter.TODAY -> status(item) == ExpiryStatus.TODAY
+                    Filter.SOON -> status(item) == ExpiryStatus.SOON
+                    Filter.OK -> status(item) == ExpiryStatus.OK
+                }
+            }
         }
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { if (searching) OutlinedTextField(search, { search = it }, placeholder = { Text("Buscar producto…") }, singleLine = true) else Text("Expiry") },
-                actions = { IconButton(onClick = { searching = !searching; if (!searching) search = "" }) { Icon(Icons.Default.Search, "Buscar") } }
+                title = {
+                    if (searching) {
+                        OutlinedTextField(
+                            value = search,
+                            onValueChange = { search = it },
+                            placeholder = { Text("Buscar producto…") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    } else Text("Expiry")
+                },
+                actions = {
+                    IconButton(onClick = { searching = !searching; if (!searching) search = "" }) {
+                        Icon(Icons.Default.Search, "Buscar")
+                    }
+                }
             )
         },
-        floatingActionButton = { FloatingActionButton(onClick = { showAdd = true }) { Icon(Icons.Default.Add, "Añadir producto") } }
+        floatingActionButton = {
+            FloatingActionButton(onClick = { showAdd = true }) {
+                Icon(Icons.Default.Add, "Añadir producto")
+            }
+        }
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            FilterRow(filter) { filter = it }
+            Row(
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Filter.values().forEach { f ->
+                    FilterChip(
+                        selected = filter == f,
+                        onClick = { filter = f },
+                        label = { Text("${filterLabel(f)} (${counts[f] ?: 0})") }
+                    )
+                }
+            }
+
             if (filtered.isEmpty()) {
-                Column(Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                    Text(if (items.isEmpty()) "No tienes productos registrados" else "No hay productos que coincidan", style = MaterialTheme.typography.titleMedium)
-                    if (items.isEmpty()) { Spacer(Modifier.height(8.dp)); Text("Pulsa + para añadir el primero.") }
+                Column(
+                    Modifier.fillMaxSize().padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        if (items.isEmpty()) "No tienes productos registrados" else "No hay productos que coincidan",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    if (items.isEmpty()) {
+                        Spacer(Modifier.height(8.dp))
+                        Text("Pulsa + para añadir el primero.")
+                    }
                 }
             } else {
-                LazyColumn(Modifier.fillMaxSize().padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(bottom = 96.dp)) {
+                LazyColumn(
+                    Modifier.fillMaxSize().padding(horizontal = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(bottom = 96.dp)
+                ) {
                     items(filtered, key = { it.id }) { item ->
                         ExpiryCard(item, onEdit = { editing = item }, onDelete = { deleteTarget = item })
                     }
@@ -125,25 +221,48 @@ private fun ExpiryApp() {
         }
     }
 
-    if (showAdd) ExpiryDialog(null, { showAdd = false }, { item -> repository.save(item); scheduleReminder(context, item); items = repository.all(); showAdd = false })
-    editing?.let { item -> ExpiryDialog(item, { editing = null }, { updated -> cancelReminder(context, item); repository.save(updated); scheduleReminder(context, updated); items = repository.all(); editing = null }) }
+    if (showAdd) {
+        ExpiryDialog(
+            existing = null,
+            onDismiss = { showAdd = false },
+            onSave = { item ->
+                repository.save(item)
+                scheduleReminder(context, item)
+                items = repository.all()
+                showAdd = false
+            }
+        )
+    }
+
+    editing?.let { item ->
+        ExpiryDialog(
+            existing = item,
+            onDismiss = { editing = null },
+            onSave = { updated ->
+                cancelReminder(context, item.id)
+                repository.save(updated)
+                scheduleReminder(context, updated)
+                items = repository.all()
+                editing = null
+            }
+        )
+    }
+
     deleteTarget?.let { item ->
         AlertDialog(
             onDismissRequest = { deleteTarget = null },
             title = { Text("Eliminar producto") },
             text = { Text("¿Eliminar ${item.name} de Expiry?") },
-            confirmButton = { Button(onClick = { cancelReminder(context, item); repository.delete(item.id); items = repository.all(); deleteTarget = null }) { Text("Eliminar") } },
+            confirmButton = {
+                Button(onClick = {
+                    cancelReminder(context, item.id)
+                    repository.delete(item.id)
+                    items = repository.all()
+                    deleteTarget = null
+                }) { Text("Eliminar") }
+            },
             dismissButton = { TextButton(onClick = { deleteTarget = null }) { Text("Cancelar") } }
         )
-    }
-}
-
-@Composable
-private fun FilterRow(selected: Filter, onSelect: (Filter) -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        listOf(Filter.ALL to "Todos", Filter.EXPIRED to "Caducados", Filter.TODAY to "Hoy", Filter.SOON to "Próximos", Filter.OK to "En plazo").forEach { (filter, label) ->
-            FilterChip(selected = selected == filter, onClick = { onSelect(filter) }, label = { Text(label) })
-        }
     }
 }
 
@@ -171,7 +290,7 @@ private fun ExpiryDialog(existing: ExpiryItem?, onDismiss: () -> Unit, onSave: (
     var category by remember(existing?.id) { mutableStateOf(existing?.category ?: "") }
     var reminder by remember(existing?.id) { mutableStateOf((existing?.reminderDays ?: 7).toString()) }
     var date by remember(existing?.id) { mutableLongStateOf(existing?.expiryMillis ?: System.currentTimeMillis()) }
-    var error by remember { mutableStateOf(false) }
+    var error by remember(existing?.id) { mutableStateOf(false) }
     val isEdit = existing != null
 
     AlertDialog(
@@ -179,40 +298,81 @@ private fun ExpiryDialog(existing: ExpiryItem?, onDismiss: () -> Unit, onSave: (
         title = { Text(if (isEdit) "Editar producto" else "Nuevo producto") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(name, { name = it; error = false }, label = { Text("Producto") }, singleLine = true, isError = error, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(category, { category = it }, label = { Text("Categoría (opcional)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                Button(onClick = {
-                    val c = Calendar.getInstance().apply { timeInMillis = date }
-                    DatePickerDialog(context, { _, y, m, d -> c.set(y, m, d, 12, 0, 0); c.set(Calendar.MILLISECOND, 0); date = c.timeInMillis }, c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DAY_OF_MONTH)).show()
-                }, modifier = Modifier.fillMaxWidth()) { Text("Caducidad: ${dateText(date)}") }
-                OutlinedTextField(reminder, { if (it.all(Char::isDigit)) reminder = it }, label = { Text("Avisar con días de antelación") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it; error = false },
+                    label = { Text("Producto") },
+                    singleLine = true,
+                    isError = error,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = category,
+                    onValueChange = { category = it },
+                    label = { Text("Categoría (opcional)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Button(
+                    onClick = {
+                        val c = Calendar.getInstance().apply { timeInMillis = date }
+                        DatePickerDialog(
+                            context,
+                            { _, y, m, d ->
+                                c.set(y, m, d, 12, 0, 0)
+                                c.set(Calendar.MILLISECOND, 0)
+                                date = c.timeInMillis
+                            },
+                            c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DAY_OF_MONTH)
+                        ).show()
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Caducidad: ${dateText(date)}") }
+                OutlinedTextField(
+                    value = reminder,
+                    onValueChange = { value -> if (value.all(Char::isDigit)) reminder = value },
+                    label = { Text("Avisar con días de antelación") },
+                    supportingText = { Text("0 = el mismo día · máximo 365") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         },
-        confirmButton = { Button(onClick = {
-            if (name.isBlank()) { error = true; return@Button }
-            val id = existing?.id ?: UUID.randomUUID().mostSignificantBits
-            onSave(ExpiryItem(id, name.trim(), category.trim(), date, reminder.toIntOrNull()?.coerceIn(0, 365) ?: 7))
-        }) { Text("Guardar") } },
+        confirmButton = {
+            Button(onClick = {
+                if (name.isBlank()) {
+                    error = true
+                    return@Button
+                }
+                val id = existing?.id ?: UUID.randomUUID().mostSignificantBits
+                onSave(ExpiryItem(id, name.trim(), category.trim(), date, reminder.toIntOrNull()?.coerceIn(0, 365) ?: 7))
+            }) { Text("Guardar") }
+        },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
     )
 }
 
-private fun reminderPendingIntent(context: Context, id: Long, name: String): PendingIntent {
-    val intent = Intent(context, ExpiryAlarmReceiver::class.java).apply { putExtra("name", name); putExtra("id", id) }
+private fun reminderPendingIntent(context: Context, id: Long): PendingIntent {
+    val intent = Intent(context, ExpiryAlarmReceiver::class.java).apply { putExtra("id", id) }
     val requestCode = (id xor (id ushr 32)).toInt()
-    return PendingIntent.getBroadcast(context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+    return PendingIntent.getBroadcast(
+        context,
+        requestCode,
+        intent,
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+    )
 }
 
 private fun scheduleReminder(context: Context, item: ExpiryItem) {
     val trigger = item.expiryMillis - item.reminderDays * 86_400_000L
     if (trigger <= System.currentTimeMillis()) return
     val alarm = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-    alarm.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, trigger, reminderPendingIntent(context, item.id, item.name))
+    alarm.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, trigger, reminderPendingIntent(context, item.id))
 }
 
-private fun cancelReminder(context: Context, item: ExpiryItem) {
+private fun cancelReminder(context: Context, id: Long) {
     val alarm = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-    alarm.cancel(reminderPendingIntent(context, item.id, item.name))
+    alarm.cancel(reminderPendingIntent(context, id))
 }
 
 @Composable
