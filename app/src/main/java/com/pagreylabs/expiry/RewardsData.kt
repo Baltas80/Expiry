@@ -2,13 +2,17 @@ package com.pagreylabs.expiry
 
 /** Internal rewards infrastructure. Not exposed in the current UI. */
 object RewardsConfig {
-    const val SCHEMA_VERSION = 1
+    const val SCHEMA_VERSION = 2
     const val POINTS_PER_EURO_REFERENCE = 500
     const val REWARDS_ENABLED = false
 }
 
 enum class RewardsEventType { EARNED, SPENT, ADJUSTED, EXPIRED }
 
+/**
+ * points is always a signed balance delta:
+ * positive for earned points and negative for spent/expired points.
+ */
 data class RewardsLedgerEntry(
     val id: Long,
     val type: RewardsEventType,
@@ -39,5 +43,7 @@ data class RewardsAccount(
 /** Future campaigns can map authorized, non-consumption data value to points. */
 interface RewardsEngine {
     fun addPoints(points: Int, reason: String, campaignId: String? = null): RewardsAccount
+    fun adjustPoints(delta: Int, reason: String): RewardsAccount
+    fun expirePoints(points: Int, reason: String = "Puntos caducados"): RewardsAccount
     fun redeem(catalogItem: RewardCatalogItem): RewardsAccount
 }
