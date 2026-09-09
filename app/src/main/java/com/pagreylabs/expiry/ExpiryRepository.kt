@@ -24,6 +24,7 @@ class ExpiryRepository(context: Context) {
         val array = JSONArray()
         items.forEach { array.put(it.toJson()) }
         prefs.edit().putString("items", array.toString()).apply()
+        rememberProduct(item.barcode, item.name, item.category)
     }
 
     fun delete(id: Long) {
@@ -31,6 +32,39 @@ class ExpiryRepository(context: Context) {
         all().filterNot { it.id == id }.forEach { array.put(it.toJson()) }
         prefs.edit().putString("items", array.toString()).apply()
     }
+
+    /** Keeps a local barcode-to-product mapping even after an item leaves active inventory. */
+    fun rememberProduct(barcode: String, name: String, category: String = "") {
+        val cleanBarcode = barcode.trim()
+        val cleanName = name.trim()
+        if (cleanBarcode.isBlank() || cleanName.isBlank()) return
+        val raw = prefs.getString("product_catalog", "{}") ?: "{}"
+        val catalog = JSONObject(raw)
+        catalog.put(cleanBarcode, JSONObject().apply {
+            put("name", cleanName)
+            put("category", category.trim())
+            put("updatedAt", System.currentTimeMillis())
+        })
+        while (catalog.length() > MAX_PRODUCT_CATALOG) {
+            val oldest = catalog.keys().asSequence().minByOrNull { key ->
+                catalog.optJSONObject(key)?.optLong("updatedAt", Long.MAX_VALUE) ?: Long.MAX_VALUE
+            } ?: break
+            catalog.remove(oldest)
+        }
+        prefs.edit().putString("product_catalog", catalog.toString()).apply()
+    }
+
+    fun findProductByBarcode(barcode: String): CatalogProduct? {
+        val cleanBarcode = barcode.trim()
+        if (cleanBarcode.isBlank()) return null
+        val raw = prefs.getString("product_catalog", "{}") ?: "{}"
+        val entry = JSONObject(raw).optJSONObject(cleanBarcode) ?: return null
+        val name = entry.optString("name").trim()
+        if (name.isBlank()) return null
+        return CatalogProduct(name, entry.optString("category").trim())
+    }
+
+    fun catalogSize(): Int = JSONObject(prefs.getString("product_catalog", "{}") ?: "{}").length()
 
     fun recordScan(barcode: String, timestamp: Long = System.currentTimeMillis()) {
         if (barcode.isBlank()) return
@@ -68,6 +102,7 @@ class ExpiryRepository(context: Context) {
         })
         while (array.length() > MAX_OUTCOME_HISTORY) array.remove(0)
         prefs.edit().putString("outcome_history", array.toString()).apply()
+        rememberProduct(item.barcode, item.name, item.category)
     }
 
     fun outcomeHistory(): List<OutcomeEvent> {
@@ -146,9 +181,12 @@ class ExpiryRepository(context: Context) {
     companion object {
         private const val MAX_SCAN_HISTORY = 500
         private const val MAX_OUTCOME_HISTORY = 500
+        private const val MAX_PRODUCT_CATALOG = 5000
         private const val RETENTION_YEARS = 5
     }
 }
+
+data class CatalogProduct(val name: String, val category: String)
 
 data class ScanEvent(val barcode: String, val timestamp: Long)
 
