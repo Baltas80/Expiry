@@ -35,7 +35,8 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
-    implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
+    // 16.0.0 avoids the malformed localized resources currently shipped by 16.1.0.
+    implementation("com.google.android.gms:play-services-code-scanner:16.0.0")
     implementation("io.coil-kt:coil-compose:2.7.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
 
