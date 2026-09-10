@@ -33,7 +33,7 @@ object ProductLookup {
     private fun lookupV3(barcode: String): Result? {
         val url = URL(
             "https://world.openfoodfacts.org/api/v3/product/$barcode" +
-                "?product_type=all&lc=es&cc=es&fields=code,product_name,product_name_es,categories,categories_tags"
+                "?product_type=all&fields=code,product_name,categories,categories_tags"
         )
         val connection = (url.openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
@@ -56,7 +56,7 @@ object ProductLookup {
     private fun lookupV2(barcode: String): Result? {
         val url = URL(
             "https://world.openfoodfacts.org/api/v2/product/$barcode" +
-                "?product_type=all&lc=es&cc=es&fields=product_name,product_name_es,categories,categories_tags"
+                "?product_type=all&fields=product_name,categories,categories_tags"
         )
         val connection = (url.openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
@@ -78,10 +78,9 @@ object ProductLookup {
     private fun productResult(product: JSONObject?, barcode: String): Result {
         if (product == null) return Result(found = false)
 
-        val name = firstNonBlank(
-            product.optString("product_name_es"),
-            product.optString("product_name")
-        )
+        // Keep Open Food Facts text untouched. In particular, do not prefer or
+        // translate localized *_es fields: OFF is the source of truth for text.
+        val name = product.optString("product_name").trim()
         val category = product.optString("categories")
             .split(',')
             .firstOrNull { it.isNotBlank() }
@@ -98,7 +97,4 @@ object ProductLookup {
         }
         return result
     }
-
-    private fun firstNonBlank(vararg values: String): String =
-        values.firstOrNull { it.isNotBlank() }.orEmpty()
 }
