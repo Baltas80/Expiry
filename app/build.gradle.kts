@@ -37,10 +37,14 @@ android {
 }
 
 configurations.configureEach {
-    // Expiry uses its own CameraX + ML Kit scanner UI. The Google Play Services
-    // barcode wrappers are not used by Expiry.
-    exclude(group = "com.google.android.gms", module = "play-services-code-scanner")
-    exclude(group = "com.google.android.gms", module = "play-services-mlkit-barcode-scanning")
+    resolutionStrategy.eachDependency {
+        if (requested.group == "com.google.android.gms" && requested.name == "play-services-mlkit-barcode-scanning") {
+            // 18.3.1 ships a malformed locale resource. 18.2.0 exposes the same
+            // barcode scanning API used here without that resource defect.
+            useVersion("18.2.0")
+            because("Keep AAPT-safe barcode scanning resources while retaining BarcodeScanning API")
+        }
+    }
 }
 
 dependencies {
