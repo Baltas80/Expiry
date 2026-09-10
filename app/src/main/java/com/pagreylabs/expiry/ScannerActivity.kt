@@ -32,10 +32,11 @@ class ScannerActivity : ComponentActivity() {
         val root = FrameLayout(this)
         previewView = PreviewView(this).apply {
             layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+            contentDescription = getString(R.string.scan_code)
         }
         root.addView(previewView)
         val hint = TextView(this).apply {
-            text = "Apunta al código de barras"
+            text = getString(R.string.scan_code)
             setTextColor(Color.WHITE)
             textSize = 16f
             gravity = Gravity.CENTER
