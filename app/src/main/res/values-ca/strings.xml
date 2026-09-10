@@ -1,4 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Expiry</string><string name="tagline">Organitza avui, gaudeix demà</string><string name="settings">Configuració</string><string name="search">Cerca</string><string name="search_product">Cerca un producte</string><string name="pantry_title">El teu rebost</string><string name="pantry_subtitle">Tot sota control</string><string name="expired_count_label">Caducats</string><string name="today_count_label">Caduquen avui</string><string name="soon_count_label">Propers</string><string name="in_date_count_label">En termini</string><string name="all">Tots</string><string name="expired">Caducats</string><string name="today">Avui</string><string name="soon">Propers</string><string name="in_date">En termini</string><string name="upcoming_products">Productes propers</string><string name="no_products">No hi ha productes registrats</string><string name="no_matches">No hi ha coincidències</string><string name="add_first">Toca + per afegir-ne el primer.</string><string name="add_product">Afegir producte</string><string name="home">Inici</string><string name="scan_tab">Escanejar</string><string name="add_tab">Afegir</string><string name="stats_tab">Estadístiques</string><string name="more_tab">Més</string><string name="expired_status">Caducat</string><string name="expires_today">Caduca avui</string><string name="expires_in">Caduca en %1$d dies</string><string name="ok_status">En termini</string><string name="delete_product">Eliminar producte</string><string name="delete_confirm">Vols eliminar %1$s?</string><string name="cancel">Cancel·lar</string><string name="record_result">Registrar resultat</string><string name="what_happened">Què ha passat amb %1$s?</string><string name="consumed">Consumit</string><string name="discarded">Llençat</string><string name="product_lookup_error">No s'han pogut obtenir les dades del producte.</string><string name="product_not_found">Producte no trobat.</string><string name="data_operation_error">Error en l'operació de dades.</string><string name="data_imported">Dades importades.</string><string name="data_invalid">Fitxer de dades no vàlid.</string>
+    <string name="app_name">Expiry</string>
+    <string name="tagline">Organitza avui, gaudeix demà</string>
+    <string name="settings">Configuració</string>
+    <string name="search">Cerca</string>
+    <string name="search_product">Cerca un producte</string>
+    <string name="pantry_title">El teu rebost</string>
+    <string name="pantry_subtitle">Tot sota control</string>
+    <string name="expired_count_label">Caducats</string>
+    <string name="today_count_label">Caduquen avui</string>
+    <string name="soon_count_label">Propers</string>
+    <string name="in_date_count_label">En termini</string>
+    <string name="all">Tots</string>
+    <string name="expired">Caducats</string>
+    <string name="today">Avui</string>
+    <string name="soon">Propers</string>
+    <string name="in_date">En termini</string>
+    <string name="upcoming_products">Productes propers</string>
+    <string name="no_products">No hi ha productes registrats</string>
+    <string name="no_matches">No hi ha coincidències</string>
+    <string name="add_first">Toca + per afegir-ne el primer.</string>
+    <string name="add_product">Afegir producte</string>
+    <string name="home">Inici</string>
+    <string name="scan_tab">Escanejar</string>
+    <string name="add_tab">Afegir</string>
+    <string name="stats_tab">Estadístiques</string>
+    <string name="more_tab">Més</string>
+    <string name="expired_status">Caducat</string>
+    <string name="expires_today">Caduca avui</string>
+    <string name="expires_in">Caduca en %1$d dies</string>
+    <string name="ok_status">En termini</string>
+    <string name="delete_product">Eliminar producte</string>
+    <string name="delete_confirm">Vols eliminar %1$s?</string>
+    <string name="cancel">Cancel·lar</string>
+    <string name="record_result">Registrar resultat</string>
+    <string name="what_happened">Què ha passat amb %1$s?</string>
+    <string name="consumed">Consumit</string>
+    <string name="discarded">Llençat</string>
+    <string name="product_lookup_error">No s'han pogut obtenir les dades del producte.</string>
+    <string name="product_not_found">Producte no trobat.</string>
+    <string name="data_operation_error">Error en l'operació de dades.</string>
+    <string name="data_imported">Dades importades.</string>
+    <string name="data_invalid">Fitxer de dades no vàlid.</string>
 </resources>
