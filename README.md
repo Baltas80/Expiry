@@ -59,3 +59,7 @@ Rewards permanece desactivado (`REWARDS_ENABLED = false`) y no aparece en la int
 - Sin funciones innecesarias en la interfaz actual.
 - Arquitectura modular para futuras actualizaciones.
 - El consumo individual no forma parte del intercambio de datos con servidor.
+
+## Localización
+
+Expiry está preparado para una cobertura internacional amplia mediante recursos Android por locale. Las traducciones específicas se validan mediante la comprobación automática de claves de recursos.
