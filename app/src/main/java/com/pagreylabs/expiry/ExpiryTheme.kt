@@ -1,18 +1,22 @@
 package com.pagreylabs.expiry
 
 import android.content.Context
+import android.os.Build
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.material3.Shapes
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.platform.LocalContext
+import androidx.core.view.WindowCompat
 
 private val ExpiryGreen = Color(0xFF197A5B)
 private val ExpiryGreenLight = Color(0xFFD5F1E5)
@@ -61,6 +65,16 @@ fun ExpiryTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable
         "dark" -> true
         else -> darkTheme
     }
+    val window = (context as? ComponentActivity)?.window
+    if (window != null) {
+        window.statusBarColor = if (resolvedDark) ExpiryDarkBackground.toArgbCompat() else ExpiryBackground.toArgbCompat()
+        window.navigationBarColor = if (resolvedDark) ExpiryDarkBackground.toArgbCompat() else ExpirySurface.toArgbCompat()
+        WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = !resolvedDark
+        WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightNavigationBars = !resolvedDark
+        if (Build.VERSION.SDK_INT >= 29) {
+            window.isNavigationBarContrastEnforced = false
+        }
+    }
     MaterialTheme(
         colorScheme = if (resolvedDark) DarkColors else LightColors,
         typography = ExpiryTypography,
@@ -68,3 +82,10 @@ fun ExpiryTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable
         content = content
     )
 }
+
+private fun Color.toArgbCompat(): Int = android.graphics.Color.argb(
+    (alpha * 255f).toInt().coerceIn(0, 255),
+    (red * 255f).toInt().coerceIn(0, 255),
+    (green * 255f).toInt().coerceIn(0, 255),
+    (blue * 255f).toInt().coerceIn(0, 255)
+)
