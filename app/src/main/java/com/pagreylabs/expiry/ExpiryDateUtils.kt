@@ -1,6 +1,8 @@
 package com.pagreylabs.expiry
 
 import java.util.Calendar
+import java.util.GregorianCalendar
+import java.util.TimeZone
 
 /** Date-only helpers used for expiry/reminder calculations. */
 object ExpiryDateUtils {
@@ -54,6 +56,14 @@ object ExpiryDateUtils {
     }
 
     private fun calendarDayNumber(calendar: Calendar): Int {
-        return calendar.get(Calendar.YEAR) * 366 + calendar.get(Calendar.DAY_OF_YEAR)
+        // Convert the calendar date to a UTC midnight ordinal so leap years and
+        // year boundaries are counted correctly without relying on 24-hour days.
+        val utc = GregorianCalendar(TimeZone.getTimeZone("UTC")).apply {
+            clear()
+            set(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH), 0, 0, 0)
+        }
+        return (utc.timeInMillis / MILLIS_PER_DAY).toInt()
     }
+
+    private const val MILLIS_PER_DAY = 86_400_000L
 }
