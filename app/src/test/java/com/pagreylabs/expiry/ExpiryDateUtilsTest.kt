@@ -1,6 +1,7 @@
 package com.pagreylabs.expiry
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.Calendar
 
@@ -39,6 +40,24 @@ class ExpiryDateUtilsTest {
         assertEquals(ExpiryDateUtils.REMINDER_MINUTE, trigger.get(Calendar.MINUTE))
         assertEquals(0, trigger.get(Calendar.SECOND))
         assertEquals(0, trigger.get(Calendar.MILLISECOND))
+    }
+
+    @Test
+    fun maxValidReminderDaysNeverSchedulesBeforeNow() {
+        val now = calendar(2026, Calendar.MARCH, 10, 11)
+        val expiry = calendar(2026, Calendar.MARCH, 12, 23)
+        val max = ExpiryDateUtils.maxValidReminderDays(expiry.timeInMillis, now.timeInMillis)
+
+        assertEquals(1, max)
+        assertTrue(ExpiryDateUtils.reminderTrigger(expiry.timeInMillis, max) > now.timeInMillis)
+        assertTrue(ExpiryDateUtils.reminderTrigger(expiry.timeInMillis, max + 1) <= now.timeInMillis)
+    }
+
+    @Test
+    fun noValidReminderExistsAfterReminderHourOnExpiryDay() {
+        val now = calendar(2026, Calendar.MARCH, 12, 11)
+        val expiry = calendar(2026, Calendar.MARCH, 12, 23)
+        assertEquals(-1, ExpiryDateUtils.maxValidReminderDays(expiry.timeInMillis, now.timeInMillis))
     }
 
     @Test
