@@ -6,6 +6,7 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 
@@ -21,8 +22,21 @@ class ExpiryAlarmReceiver : BroadcastReceiver() {
         val name = item?.name ?: intent.getStringExtra("name") ?: context.getString(R.string.product)
         val notificationId = if (itemId != Long.MIN_VALUE) (itemId xor (itemId ushr 32)).toInt() else System.currentTimeMillis().toInt()
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        manager.createNotificationChannel(NotificationChannel(CHANNEL, context.getString(R.string.notification_channel), NotificationManager.IMPORTANCE_DEFAULT))
-        val open = PendingIntent.getActivity(context, 0, Intent(context, MainActivity::class.java), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            manager.createNotificationChannel(
+                NotificationChannel(
+                    CHANNEL,
+                    context.getString(R.string.notification_channel),
+                    NotificationManager.IMPORTANCE_DEFAULT
+                )
+            )
+        }
+        val open = PendingIntent.getActivity(
+            context,
+            0,
+            Intent(context, MainActivity::class.java),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
         val notification = NotificationCompat.Builder(context, CHANNEL)
             .setSmallIcon(R.drawable.ic_expiry_notification)
             .setContentTitle(context.getString(R.string.notification_title))
