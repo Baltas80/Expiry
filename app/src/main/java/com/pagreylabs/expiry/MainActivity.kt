@@ -175,7 +175,12 @@ private fun ExpiryApp(
                 title = {
                     if (searching) {
                         OutlinedTextField(search, { search = it }, placeholder = { Text(stringResource(R.string.search_product)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                    } else Text(stringResource(R.string.app_name))
+                    } else {
+                        Column {
+                            Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                            Text("Organiza hoy, aprovecha mañana", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
                 },
                 actions = {
                     IconButton({ searching = !searching; if (!searching) search = "" }) { Icon(Icons.Default.Search, stringResource(R.string.search)) }
@@ -188,16 +193,44 @@ private fun ExpiryApp(
         floatingActionButton = { FloatingActionButton({ showAdd = true }) { Icon(Icons.Default.Add, stringResource(R.string.add_product)) } }
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(12.dp, 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Card(
+                Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                shape = MaterialTheme.shapes.large
+            ) {
+                Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Eco, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(30.dp))
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("Tu despensa", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text("Todo bajo control", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                SummaryCard(counts[Filter.EXPIRED] ?: 0, label(Filter.EXPIRED), MaterialTheme.colorScheme.error)
+                SummaryCard(counts[Filter.TODAY] ?: 0, label(Filter.TODAY), MaterialTheme.colorScheme.tertiary)
+                SummaryCard(counts[Filter.SOON] ?: 0, label(Filter.SOON), MaterialTheme.colorScheme.tertiary)
+                SummaryCard(counts[Filter.OK] ?: 0, label(Filter.OK), MaterialTheme.colorScheme.primary)
+            }
+
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(12.dp, 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Filter.values().forEach { f -> FilterChip(filter == f, { filter = f }, label = { Text("${label(f)} (${counts[f] ?: 0})") }) }
             }
             if (filtered.isEmpty()) {
                 Column(Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                    Text(if (items.isEmpty()) stringResource(R.string.no_products) else stringResource(R.string.no_matches), style = MaterialTheme.typography.titleMedium)
-                    if (items.isEmpty()) { Spacer(Modifier.height(8.dp)); Text(stringResource(R.string.add_first)) }
+                    Icon(Icons.Default.Inventory2, null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.height(16.dp))
+                    Text(if (items.isEmpty()) stringResource(R.string.no_products) else stringResource(R.string.no_matches), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    if (items.isEmpty()) { Spacer(Modifier.height(8.dp)); Text(stringResource(R.string.add_first), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 }
             } else {
-                LazyColumn(Modifier.fillMaxSize().padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(bottom = 96.dp)) {
+                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Productos próximos", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                    Text("Ver todos", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                }
+                LazyColumn(Modifier.fillMaxSize().padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = 8.dp, bottom = 96.dp)) {
                     items(filtered, key = { it.id }) { item -> ExpiryCard(item, { editing = item }, { deleteTarget = item }, { outcomeTarget = item }, r) }
                 }
             }
@@ -218,6 +251,20 @@ private fun ExpiryApp(
 }
 
 @Composable
+private fun SummaryCard(count: Int, label: String, color: androidx.compose.ui.graphics.Color) {
+    Card(
+        Modifier.width(92.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        shape = MaterialTheme.shapes.medium
+    ) {
+        Column(Modifier.fillMaxWidth().padding(vertical = 10.dp, horizontal = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(count.toString(), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = color)
+            Text(label, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+        }
+    }
+}
+
+@Composable
 private fun ExpirySettingsDialog(onDismiss: () -> Unit) {
     val context = LocalContext.current
     val notificationsEnabled = if (Build.VERSION.SDK_INT >= 24) (context.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager).areNotificationsEnabled() else true
@@ -231,21 +278,32 @@ private fun ExpirySettingsDialog(onDismiss: () -> Unit) {
 
 @Composable
 private fun ExpiryCard(item: ExpiryItem, onEdit: () -> Unit, onDelete: () -> Unit, onOutcome: () -> Unit, r: android.content.res.Resources) {
-    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow), elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
+    Card(
+        Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        shape = MaterialTheme.shapes.large
+    ) {
         Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             ProductThumbnail(item)
-            Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f)) {
-                Text(item.name, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleMedium)
-                if (item.category.isNotBlank()) Text(item.category, style = MaterialTheme.typography.bodySmall)
-                Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f).padding(vertical = 2.dp)) {
+                Text(item.name, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleMedium, maxLines = 2)
+                if (item.category.isNotBlank()) Text(item.category, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                Spacer(Modifier.height(5.dp))
                 Text(r.getString(R.string.expiry_date, dateText(item.expiryMillis)), style = MaterialTheme.typography.bodySmall)
-                Text(statusText(item, r), style = MaterialTheme.typography.labelLarge, color = statusColor(item))
-                Text(r.getString(R.string.notice, item.reminderDays), style = MaterialTheme.typography.bodySmall)
-            }
-            Column(horizontalAlignment = Alignment.End) {
-                Row { IconButton(onEdit) { Icon(Icons.Default.Edit, stringResource(R.string.edit_product)) }; IconButton(onDelete) { Icon(Icons.Default.Delete, stringResource(R.string.delete_product)) } }
-                OutlinedButton(onOutcome, contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp)) { Text(stringResource(R.string.record_consumption_waste), style = MaterialTheme.typography.labelSmall) }
+                Text(statusText(item, r), style = MaterialTheme.typography.labelLarge, color = statusColor(item), fontWeight = FontWeight.SemiBold)
+                Text(r.getString(R.string.notice, item.reminderDays), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedButton(onOutcome, contentPadding = PaddingValues(horizontal = 10.dp), modifier = Modifier.weight(1f)) {
+                        Icon(Icons.Default.Restaurant, null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(5.dp))
+                        Text(stringResource(R.string.record_consumption_waste), style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                    }
+                    IconButton(onEdit, modifier = Modifier.size(40.dp)) { Icon(Icons.Default.Edit, stringResource(R.string.edit_product)) }
+                    IconButton(onDelete, modifier = Modifier.size(40.dp)) { Icon(Icons.Default.Delete, stringResource(R.string.delete_product)) }
+                }
             }
         }
     }
@@ -253,12 +311,21 @@ private fun ExpiryCard(item: ExpiryItem, onEdit: () -> Unit, onDelete: () -> Uni
 
 @Composable
 private fun ProductThumbnail(item: ExpiryItem) {
-    Surface(Modifier.size(64.dp), shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surfaceVariant) {
+    Surface(
+        Modifier.size(92.dp),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceVariant
+    ) {
         if (item.imageUrl.isNotBlank()) {
-            AsyncImage(model = item.imageUrl, contentDescription = item.name, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+            AsyncImage(
+                model = item.imageUrl,
+                contentDescription = item.name,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
         } else {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Icon(Icons.Default.Inventory2, contentDescription = item.category.ifBlank { item.name }, tint = MaterialTheme.colorScheme.primary)
+                Icon(Icons.Default.Inventory2, contentDescription = item.category.ifBlank { item.name }, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(34.dp))
             }
         }
     }
