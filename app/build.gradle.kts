@@ -28,9 +28,11 @@ android {
 }
 
 configurations.configureEach {
-    // Some transitive Google scanner UI artifacts ship a malformed Italian resource
-    // (data_operation_error) that breaks AAPT. Expiry uses its own CameraX + ML Kit UI.
+    // Expiry uses its own CameraX + ML Kit scanner UI. The Google Play Services
+    // barcode wrapper is transitive and currently ships a malformed Italian
+    // resource (data_operation_error) that breaks AAPT during resource merging.
     exclude(group = "com.google.android.gms", module = "play-services-code-scanner")
+    exclude(group = "com.google.android.gms", module = "play-services-mlkit-barcode-scanning")
 }
 
 dependencies {
@@ -41,7 +43,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
-    // CameraX + ML Kit provide barcode scanning without the Google scanner UI package.
+    // CameraX + bundled ML Kit provide barcode scanning without Google's scanner UI.
     implementation("androidx.camera:camera-camera2:1.4.2")
     implementation("androidx.camera:camera-lifecycle:1.4.2")
     implementation("androidx.camera:camera-view:1.4.2")
