@@ -15,32 +15,49 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check localized string keys
+      - name: Check localized string keys and translation coverage
         shell: bash
         run: |
           python3 - <<'PY'
+          import hashlib
           import re
           from pathlib import Path
 
           root = Path('app/src/main/res')
           default = root / 'values' / 'strings.xml'
           key_re = re.compile(r'<string\s+name="([^"]+)"')
-          default_keys = set(key_re.findall(default.read_text(encoding='utf-8')))
+          default_text = default.read_text(encoding='utf-8')
+          default_keys = set(key_re.findall(default_text))
           # Rewards is an intentionally inactive, forward-compatible resource.
           # It is not required to be present in every locale until the feature is enabled.
           default_keys.discard('settings_rewards')
           if not default_keys:
               raise SystemExit('No default string resources found')
 
+          default_hash = hashlib.sha256(default_text.encode('utf-8')).hexdigest()
           failed = False
+          placeholder_locales = []
+
           for path in sorted(root.glob('values-*/strings.xml')):
-              keys = set(key_re.findall(path.read_text(encoding='utf-8')))
+              text = path.read_text(encoding='utf-8')
+              keys = set(key_re.findall(text))
               missing = sorted(default_keys - keys)
               if missing:
                   failed = True
                   print(f'{path}: missing {len(missing)} keys: {", ".join(missing)}')
+                  continue
+
+              locale_hash = hashlib.sha256(text.encode('utf-8')).hexdigest()
+              if locale_hash == default_hash:
+                  locale = path.parent.name.removeprefix('values-')
+                  placeholder_locales.append(locale)
+                  print(f'::warning file={path}::Locale {locale} is byte-identical to the default Spanish resources; translation is not yet localized.')
               else:
                   print(f'{path}: OK ({len(keys)} keys)')
+
+          if placeholder_locales:
+              print('Placeholder locales (non-blocking): ' + ', '.join(placeholder_locales))
+              print('These locales pass key parity but still require human-quality translations before release.')
           if failed:
               raise SystemExit(1)
           PY
