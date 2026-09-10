@@ -9,7 +9,8 @@ object ProductLookup {
     data class Result(
         val found: Boolean,
         val name: String = "",
-        val category: String = ""
+        val category: String = "",
+        val imageUrl: String = ""
     )
 
     fun lookup(barcode: String, callback: (Result?) -> Unit) {
@@ -33,7 +34,7 @@ object ProductLookup {
     private fun lookupV3(barcode: String): Result? {
         val url = URL(
             "https://world.openfoodfacts.org/api/v3/product/$barcode" +
-                "?product_type=all&fields=code,product_name,categories,categories_tags"
+                "?product_type=all&fields=code,product_name,categories,categories_tags,image_front_url,image_url"
         )
         val connection = (url.openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
@@ -56,7 +57,7 @@ object ProductLookup {
     private fun lookupV2(barcode: String): Result? {
         val url = URL(
             "https://world.openfoodfacts.org/api/v2/product/$barcode" +
-                "?product_type=all&fields=product_name,categories,categories_tags"
+                "?product_type=all&fields=product_name,categories,categories_tags,image_front_url,image_url"
         )
         val connection = (url.openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
@@ -86,15 +87,23 @@ object ProductLookup {
             .firstOrNull { it.isNotBlank() }
             ?.trim()
             .orEmpty()
+        val imageUrl = firstNonBlank(
+            product.optString("image_front_url"),
+            product.optString("image_url")
+        )
 
         val result = Result(
             found = name.isNotBlank() || category.isNotBlank(),
             name = name,
-            category = category
+            category = category,
+            imageUrl = imageUrl
         )
         if (result.found) {
             ExpiryRepository(ExpiryApplication.appContext).rememberProduct(barcode, result.name, result.category)
         }
         return result
     }
+
+    private fun firstNonBlank(vararg values: String): String =
+        values.firstOrNull { it.isNotBlank() }?.trim().orEmpty()
 }
