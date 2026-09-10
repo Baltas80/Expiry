@@ -3,6 +3,7 @@ package com.pagreylabs.expiry
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.Locale
 
 /** Barcode lookup with a persistent local Expiry catalog plus Open Food Facts fallback. */
 object ProductLookup {
@@ -79,9 +80,10 @@ object ProductLookup {
     private fun productResult(product: JSONObject?, barcode: String): Result {
         if (product == null) return Result(found = false)
 
-        // Keep Open Food Facts text untouched. In particular, do not prefer or
-        // translate localized *_es fields: OFF is the source of truth for text.
-        val name = product.optString("product_name").trim()
+        // Keep Open Food Facts text untouched except for a very narrow OCR-like
+        // correction observed in Spanish milk names: "usted" is sometimes
+        // produced where the package abbreviation "UHT" is expected.
+        val name = normalizeProductName(product.optString("product_name").trim())
         val category = product.optString("categories")
             .split(',')
             .firstOrNull { it.isNotBlank() }
@@ -102,6 +104,15 @@ object ProductLookup {
             ExpiryRepository(ExpiryApplication.appContext).rememberProduct(barcode, result.name, result.category)
         }
         return result
+    }
+
+    private fun normalizeProductName(value: String): String {
+        if (value.isBlank()) return value
+        val lower = value.lowercase(Locale.ROOT)
+        if (!lower.contains("leche") || !Regex("\\busted\\b", RegexOption.IGNORE_CASE).containsMatchIn(value)) {
+            return value
+        }
+        return value.replace(Regex("\\busted\\b", RegexOption.IGNORE_CASE), "UHT")
     }
 
     private fun firstNonBlank(vararg values: String): String =
