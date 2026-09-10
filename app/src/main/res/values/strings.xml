@@ -78,4 +78,26 @@
     <string name="settings_storage">Datos: almacenados localmente en este dispositivo.</string>
     <string name="settings_version">Versión: %1$s</string>
     <string name="settings_open_notifications">Abrir ajustes de notificaciones</string>
+    <string name="settings_notifications_section">Notificaciones</string>
+    <string name="settings_language_section">Idioma</string>
+    <string name="settings_language_auto">Por defecto, Expiry sigue el idioma del dispositivo.</string>
+    <string name="settings_change_language">Cambiar idioma de Expiry</string>
+    <string name="settings_appearance_section">Apariencia</string>
+    <string name="settings_appearance_description">Elige si Expiry sigue el sistema o utiliza siempre un tema claro u oscuro.</string>
+    <string name="theme_system">Sistema</string>
+    <string name="theme_light">Claro</string>
+    <string name="theme_dark">Oscuro</string>
+    <string name="settings_data_section">Datos</string>
+    <string name="data_export">Exportar copia de datos</string>
+    <string name="data_import">Importar copia de datos</string>
+    <string name="data_clear">Borrar todos los datos</string>
+    <string name="data_clear_confirm">Se eliminarán los productos, escaneos e historial local de consumo y desperdicio. Esta acción no se puede deshacer.</string>
+    <string name="data_clear_confirm_action">Borrar definitivamente</string>
+    <string name="data_imported">Datos importados correctamente.</string>
+    <string name="data_invalid">El archivo no es una copia válida de Expiry.</string>
+    <string name="data_operation_error">No se pudo completar la operación de datos.</string>
+    <string name="settings_privacy_section">Privacidad</string>
+    <string name="settings_privacy_description">Los datos de inventario, escaneos e historial se mantienen localmente. La copia manual solo se crea cuando tú la solicitas.</string>
+    <string name="settings_about_section">Acerca de Expiry</string>
+    <string name="settings_about_description">Expiry ayuda a controlar las fechas de caducidad, reducir desperdicio y mantener una despensa organizada.</string>
 </resources>
