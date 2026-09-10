@@ -32,6 +32,18 @@ object ExpiryDateUtils {
     }
 
     /**
+     * Returns the largest number of days that can be used for a reminder whose
+     * trigger is still in the future. Returns -1 when no future reminder exists.
+     */
+    fun maxValidReminderDays(expiryMillis: Long, now: Long = System.currentTimeMillis()): Int {
+        var max = -1
+        for (days in 0..365) {
+            if (reminderTrigger(expiryMillis, days) > now) max = days else break
+        }
+        return max
+    }
+
+    /**
      * Normalizes a selected expiry calendar date to the fixed daytime reminder hour.
      * The displayed date remains unchanged; only the internal time-of-day is normalized.
      */
