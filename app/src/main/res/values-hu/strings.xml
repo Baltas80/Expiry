@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Expiry</string>
+    <string name="tagline">Szervezd meg a mát, élvezd a holnapot</string>
+    <string name="settings">Beállítások</string>
+    <string name="search">Keresés</string>
+    <string name="search_product">Termék keresése</string>
+    <string name="pantry_title">A kamrád</string>
+    <string name="pantry_subtitle">Minden ellenőrzés alatt</string>
+    <string name="expired_count_label">Lejárt</string>
+    <string name="today_count_label">Ma lejár</string>
+    <string name="soon_count_label">Hamarosan</string>
+    <string name="in_date_count_label">Rendben</string>
+    <string name="all">Összes</string>
+    <string name="expired">Lejárt</string>
+    <string name="today">Ma</string>
+    <string name="soon">Hamarosan</string>
+    <string name="in_date">Érvényes</string>
+    <string name="upcoming_products">Hamarosan lejáró termékek</string>
+    <string name="no_products">Nincsenek regisztrált termékek</string>
+    <string name="no_matches">Nincs találat</string>
+    <string name="add_first">Koppints a + gombra az első hozzáadásához.</string>
+    <string name="add_product">Termék hozzáadása</string>
+    <string name="home">Kezdőlap</string>
+    <string name="scan_tab">Szkennelés</string>
+    <string name="add_tab">Hozzáadás</string>
+    <string name="stats_tab">Statisztika</string>
+    <string name="more_tab">Továbbiak</string>
+    <string name="expired_status">Lejárt</string>
+    <string name="expires_today">Ma jár le</string>
+    <string name="expires_in">%1$d nap múlva jár le</string>
+    <string name="ok_status">Érvényes</string>
+    <string name="delete_product">Termék törlése</string>
+    <string name="delete_confirm">Biztosan törlöd: %1$s?</string>
+    <string name="cancel">Mégse</string>
+    <string name="record_result">Eredmény rögzítése</string>
+    <string name="what_happened">Mi történt ezzel: %1$s?</string>
+    <string name="consumed">Elfogyasztva</string>
+    <string name="discarded">Kidobva</string>
+    <string name="product_lookup_error">Nem sikerült lekérni a termék adatait.</string>
+    <string name="product_not_found">A termék nem található.</string>
+    <string name="data_operation_error">Hiba az adatkezelés során.</string>
+    <string name="data_imported">Az adatok importálva.</string>
+    <string name="data_invalid">Érvénytelen adatfájl.</string>
+</resources>
