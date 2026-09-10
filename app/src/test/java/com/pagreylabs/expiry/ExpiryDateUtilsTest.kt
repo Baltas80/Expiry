@@ -20,6 +20,13 @@ class ExpiryDateUtilsTest {
     }
 
     @Test
+    fun calendarDayDistanceIsCorrectAcrossYearBoundary() {
+        val now = calendar(2026, Calendar.DECEMBER, 31, 10)
+        val expiry = calendar(2027, Calendar.JANUARY, 1, 10)
+        assertEquals(1, ExpiryDateUtils.daysUntil(expiry.timeInMillis, now.timeInMillis))
+    }
+
+    @Test
     fun reminderUsesCalendarDaysAndDaytimeHour() {
         val expiry = calendar(2026, Calendar.MARCH, 30, 23)
         val trigger = Calendar.getInstance().apply {
