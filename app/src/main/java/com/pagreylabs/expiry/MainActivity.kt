@@ -25,6 +25,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -254,7 +255,7 @@ private fun ExpiryCard(item: ExpiryItem, onEdit: () -> Unit, onDelete: () -> Uni
 private fun ProductThumbnail(item: ExpiryItem) {
     Surface(Modifier.size(64.dp), shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surfaceVariant) {
         if (item.imageUrl.isNotBlank()) {
-            AsyncImage(model = item.imageUrl, contentDescription = item.name, modifier = Modifier.fillMaxSize())
+            AsyncImage(model = item.imageUrl, contentDescription = item.name, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
         } else {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Icon(Icons.Default.Inventory2, contentDescription = item.category.ifBlank { item.name }, tint = MaterialTheme.colorScheme.primary)
