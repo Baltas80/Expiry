@@ -14,6 +14,15 @@ android {
         targetSdk = 35
         versionCode = 5
         versionName = "0.5.0"
+        // Italian is intentionally excluded because a transitive dependency ships
+        // a malformed values-it resource that fails AAPT during resource merging.
+        resourceConfigurations.addAll(setOf(
+            "es", "en", "ca", "eu", "gl", "fr", "de", "pt", "nl", "pl", "cs",
+            "da", "fi", "sv", "nb", "ro", "sk", "sl", "hu", "hr", "bg", "el", "ru",
+            "uk", "kk", "uz", "tr", "he", "ur", "ar", "sw", "fil", "id", "ms", "vi",
+            "hi", "bn", "pa", "gu", "mr", "ne", "as", "or", "ta", "te", "kn", "ml",
+            "si", "th", "lo", "bo", "my", "km", "ko", "ja", "zh-rCN", "zh-rTW"
+        ))
     }
 
     buildFeatures {
@@ -29,8 +38,7 @@ android {
 
 configurations.configureEach {
     // Expiry uses its own CameraX + ML Kit scanner UI. The Google Play Services
-    // barcode wrapper is transitive and currently ships a malformed Italian
-    // resource (data_operation_error) that breaks AAPT during resource merging.
+    // barcode wrappers are not used by Expiry.
     exclude(group = "com.google.android.gms", module = "play-services-code-scanner")
     exclude(group = "com.google.android.gms", module = "play-services-mlkit-barcode-scanning")
 }
@@ -43,7 +51,6 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
-    // CameraX + bundled ML Kit provide barcode scanning without Google's scanner UI.
     implementation("androidx.camera:camera-camera2:1.4.2")
     implementation("androidx.camera:camera-lifecycle:1.4.2")
     implementation("androidx.camera:camera-view:1.4.2")
