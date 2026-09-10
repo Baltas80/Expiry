@@ -76,6 +76,7 @@
     <string name="disabled">desactivadas</string>
     <string name="settings_notifications">Notificaciones: %1$s</string>
     <string name="settings_storage">Datos: almacenados localmente en este dispositivo.</string>
+    <string name="settings_rewards">Recompensas: función preparada pero inactiva.</string>
     <string name="settings_version">Versión: %1$s</string>
     <string name="settings_open_notifications">Abrir ajustes de notificaciones</string>
     <string name="settings_notifications_section">Notificaciones</string>
