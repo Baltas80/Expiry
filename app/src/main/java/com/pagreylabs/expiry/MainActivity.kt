@@ -170,11 +170,23 @@ private fun ExpiryApp(
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
+                navigationIcon = {
+                    IconButton({ showSettings = true }) {
+                        Icon(Icons.Default.Menu, stringResource(R.string.settings))
+                    }
+                },
                 title = {
                     if (searching) {
-                        OutlinedTextField(search, { search = it }, placeholder = { Text(stringResource(R.string.search_product)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                        OutlinedTextField(
+                            value = search,
+                            onValueChange = { search = it },
+                            placeholder = { Text(stringResource(R.string.search_product)) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     } else {
                         Column {
                             Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
@@ -183,55 +195,95 @@ private fun ExpiryApp(
                     }
                 },
                 actions = {
-                    IconButton({ searching = !searching; if (!searching) search = "" }) { Icon(Icons.Default.Search, stringResource(R.string.search)) }
-                    IconButton({ showStats = true }) { Icon(Icons.Default.BarChart, stringResource(R.string.consumption)) }
-                    IconButton(onScanBarcode) { Icon(Icons.Default.QrCodeScanner, stringResource(R.string.scan_code)) }
-                    IconButton({ showSettings = true }) { Icon(Icons.Default.Settings, stringResource(R.string.settings)) }
+                    IconButton({ searching = !searching; if (!searching) search = "" }) {
+                        Icon(Icons.Default.Search, stringResource(R.string.search))
+                    }
                 }
             )
         },
-        floatingActionButton = { FloatingActionButton({ showAdd = true }) { Icon(Icons.Default.Add, stringResource(R.string.add_product)) } }
+        bottomBar = {
+            NavigationBar {
+                NavigationBarItem(selected = true, onClick = { filter = Filter.ALL }, icon = { Icon(Icons.Default.Home, null) }, label = { Text("Inicio") })
+                NavigationBarItem(selected = false, onClick = onScanBarcode, icon = { Icon(Icons.Default.QrCodeScanner, null) }, label = { Text("Escanear") })
+                NavigationBarItem(selected = false, onClick = { showAdd = true }, icon = { Icon(Icons.Default.Add, null) }, label = { Text("Añadir") })
+                NavigationBarItem(selected = false, onClick = { showStats = true }, icon = { Icon(Icons.Default.BarChart, null) }, label = { Text("Estadísticas") })
+                NavigationBarItem(selected = false, onClick = { showSettings = true }, icon = { Icon(Icons.Default.MoreHoriz, null) }, label = { Text("Más") })
+            }
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { showAdd = true },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                shape = MaterialTheme.shapes.extraLarge
+            ) { Icon(Icons.Default.Add, stringResource(R.string.add_product), modifier = Modifier.size(30.dp)) }
+        }
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
-            Card(
-                Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                shape = MaterialTheme.shapes.large
-            ) {
-                Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Eco, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(30.dp))
-                    Spacer(Modifier.width(12.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text("Tu despensa", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                        Text("Todo bajo control", style = MaterialTheme.typography.bodySmall)
+        LazyColumn(
+            Modifier.fillMaxSize().padding(padding),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            item {
+                Card(
+                    Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                    shape = MaterialTheme.shapes.large
+                ) {
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)) {
+                            Icon(Icons.Default.Eco, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(10.dp).size(30.dp))
+                        }
+                        Spacer(Modifier.width(14.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text("Tu despensa", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                            Text("Todo bajo control", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
                 }
             }
 
-            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SummaryCard(counts[Filter.EXPIRED] ?: 0, label(Filter.EXPIRED), MaterialTheme.colorScheme.error)
-                SummaryCard(counts[Filter.TODAY] ?: 0, label(Filter.TODAY), MaterialTheme.colorScheme.tertiary)
-                SummaryCard(counts[Filter.SOON] ?: 0, label(Filter.SOON), MaterialTheme.colorScheme.tertiary)
-                SummaryCard(counts[Filter.OK] ?: 0, label(Filter.OK), MaterialTheme.colorScheme.primary)
+            item {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SummaryCard(counts[Filter.EXPIRED] ?: 0, "Caducados", MaterialTheme.colorScheme.error, Modifier.weight(1f))
+                    SummaryCard(counts[Filter.TODAY] ?: 0, "Caducan hoy", MaterialTheme.colorScheme.tertiary, Modifier.weight(1f))
+                    SummaryCard(counts[Filter.SOON] ?: 0, "Próximos", MaterialTheme.colorScheme.tertiary, Modifier.weight(1f))
+                    SummaryCard(counts[Filter.OK] ?: 0, "En fecha", MaterialTheme.colorScheme.primary, Modifier.weight(1f))
+                }
             }
 
-            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(12.dp, 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Filter.values().forEach { f -> FilterChip(filter == f, { filter = f }, label = { Text("${label(f)} (${counts[f] ?: 0})") }) }
+            item {
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Filter.values().forEach { f ->
+                        FilterChip(filter == f, { filter = f }, label = { Text("${label(f)} (${counts[f] ?: 0})") })
+                    }
+                }
             }
+
+            item {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Productos próximos", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                    Text("${filtered.size}", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                }
+            }
+
             if (filtered.isEmpty()) {
-                Column(Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                    Icon(Icons.Default.Inventory2, null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.primary)
-                    Spacer(Modifier.height(16.dp))
-                    Text(if (items.isEmpty()) stringResource(R.string.no_products) else stringResource(R.string.no_matches), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    if (items.isEmpty()) { Spacer(Modifier.height(8.dp)); Text(stringResource(R.string.add_first), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                item {
+                    Card(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
+                        Column(Modifier.fillMaxWidth().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.Inventory2, null, modifier = Modifier.size(52.dp), tint = MaterialTheme.colorScheme.primary)
+                            Spacer(Modifier.height(12.dp))
+                            Text(if (items.isEmpty()) stringResource(R.string.no_products) else stringResource(R.string.no_matches), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                            if (items.isEmpty()) {
+                                Spacer(Modifier.height(6.dp))
+                                Text(stringResource(R.string.add_first), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
                 }
             } else {
-                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Productos próximos", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                    Text("Ver todos", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-                }
-                LazyColumn(Modifier.fillMaxSize().padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = 8.dp, bottom = 96.dp)) {
-                    items(filtered, key = { it.id }) { item -> ExpiryCard(item, { editing = item }, { deleteTarget = item }, { outcomeTarget = item }, r) }
+                items(filtered, key = { it.id }) { item ->
+                    ExpiryCard(item, { editing = item }, { deleteTarget = item }, { outcomeTarget = item }, r)
                 }
             }
         }
@@ -251,15 +303,15 @@ private fun ExpiryApp(
 }
 
 @Composable
-private fun SummaryCard(count: Int, label: String, color: androidx.compose.ui.graphics.Color) {
+private fun SummaryCard(count: Int, label: String, color: androidx.compose.ui.graphics.Color, modifier: Modifier = Modifier) {
     Card(
-        Modifier.width(92.dp),
+        modifier = modifier.heightIn(min = 92.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         shape = MaterialTheme.shapes.medium
     ) {
-        Column(Modifier.fillMaxWidth().padding(vertical = 10.dp, horizontal = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(count.toString(), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = color)
-            Text(label, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+            Text(label, style = MaterialTheme.typography.labelSmall, maxLines = 2)
         }
     }
 }
@@ -284,35 +336,57 @@ private fun ExpiryCard(item: ExpiryItem, onEdit: () -> Unit, onDelete: () -> Uni
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         shape = MaterialTheme.shapes.large
     ) {
-        Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            ProductThumbnail(item)
-            Spacer(Modifier.width(14.dp))
-            Column(Modifier.weight(1f).padding(vertical = 2.dp)) {
-                Text(item.name, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleMedium, maxLines = 2)
-                if (item.category.isNotBlank()) Text(item.category, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
-                Spacer(Modifier.height(5.dp))
-                Text(r.getString(R.string.expiry_date, dateText(item.expiryMillis)), style = MaterialTheme.typography.bodySmall)
-                Text(statusText(item, r), style = MaterialTheme.typography.labelLarge, color = statusColor(item), fontWeight = FontWeight.SemiBold)
-                Text(r.getString(R.string.notice, item.reminderDays), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedButton(onOutcome, contentPadding = PaddingValues(horizontal = 10.dp), modifier = Modifier.weight(1f)) {
-                        Icon(Icons.Default.Restaurant, null, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(5.dp))
-                        Text(stringResource(R.string.record_consumption_waste), style = MaterialTheme.typography.labelSmall, maxLines = 1)
+        Column(Modifier.fillMaxWidth().padding(12.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+                ProductThumbnail(item)
+                Spacer(Modifier.width(14.dp))
+                Column(Modifier.weight(1f).padding(top = 2.dp)) {
+                    Text(item.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium, maxLines = 2)
+                    if (item.category.isNotBlank()) Text(item.category, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                    Spacer(Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        StatusDot(status(item))
+                        Spacer(Modifier.width(7.dp))
+                        Text(statusText(item, r), style = MaterialTheme.typography.labelLarge, color = statusColor(item), fontWeight = FontWeight.SemiBold)
                     }
-                    IconButton(onEdit, modifier = Modifier.size(40.dp)) { Icon(Icons.Default.Edit, stringResource(R.string.edit_product)) }
-                    IconButton(onDelete, modifier = Modifier.size(40.dp)) { Icon(Icons.Default.Delete, stringResource(R.string.delete_product)) }
+                    Spacer(Modifier.height(4.dp))
+                    Text(r.getString(R.string.expiry_date, dateText(item.expiryMillis)), style = MaterialTheme.typography.bodySmall)
+                    Text(r.getString(R.string.notice, item.reminderDays), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+                IconButton(onEdit, modifier = Modifier.size(40.dp)) { Icon(Icons.Default.Edit, stringResource(R.string.edit_product)) }
+                IconButton(onDelete, modifier = Modifier.size(40.dp)) { Icon(Icons.Default.Delete, stringResource(R.string.delete_product)) }
+            }
+            Spacer(Modifier.height(10.dp))
+            OutlinedButton(
+                onClick = onOutcome,
+                modifier = Modifier.fillMaxWidth().height(44.dp),
+                contentPadding = PaddingValues(horizontal = 12.dp)
+            ) {
+                Icon(Icons.Default.Restaurant, null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(7.dp))
+                Text(stringResource(R.string.record_consumption_waste), style = MaterialTheme.typography.labelLarge)
             }
         }
     }
 }
 
 @Composable
+private fun StatusDot(itemStatus: ExpiryStatus) {
+    Surface(
+        modifier = Modifier.size(10.dp),
+        shape = MaterialTheme.shapes.extraLarge,
+        color = when (itemStatus) {
+            ExpiryStatus.EXPIRED, ExpiryStatus.TODAY -> MaterialTheme.colorScheme.error
+            ExpiryStatus.SOON -> MaterialTheme.colorScheme.tertiary
+            ExpiryStatus.OK -> MaterialTheme.colorScheme.primary
+        }
+    ) { }
+}
+
+@Composable
 private fun ProductThumbnail(item: ExpiryItem) {
     Surface(
-        Modifier.size(92.dp),
+        Modifier.size(96.dp),
         shape = MaterialTheme.shapes.medium,
         color = MaterialTheme.colorScheme.surfaceVariant
     ) {
