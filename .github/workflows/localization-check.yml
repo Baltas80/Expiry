@@ -26,6 +26,9 @@ jobs:
           default = root / 'values' / 'strings.xml'
           key_re = re.compile(r'<string\s+name="([^"]+)"')
           default_keys = set(key_re.findall(default.read_text(encoding='utf-8')))
+          # Rewards is an intentionally inactive, forward-compatible resource.
+          # It is not required to be present in every locale until the feature is enabled.
+          default_keys.discard('settings_rewards')
           if not default_keys:
               raise SystemExit('No default string resources found')
 
