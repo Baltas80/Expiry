@@ -35,8 +35,11 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
-    // ZXing provides the scanner UI without the malformed localized resources shipped by the Google scanner UI dependency.
-    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
+    // CameraX + ML Kit provide barcode scanning without a bundled scanner UI resource package.
+    implementation("androidx.camera:camera-camera2:1.4.2")
+    implementation("androidx.camera:camera-lifecycle:1.4.2")
+    implementation("androidx.camera:camera-view:1.4.2")
+    implementation("com.google.mlkit:barcode-scanning:17.3.0")
     implementation("io.coil-kt:coil-compose:2.7.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
 
