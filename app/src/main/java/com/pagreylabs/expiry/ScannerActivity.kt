@@ -1,0 +1,102 @@
+package com.pagreylabs.expiry
+
+import android.Manifest
+import android.content.pm.PackageManager
+import android.graphics.Color
+import android.os.Bundle
+import android.view.Gravity
+import android.view.ViewGroup
+import android.widget.FrameLayout
+import android.widget.TextView
+import androidx.activity.ComponentActivity
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.Preview
+import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.PreviewView
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import com.google.mlkit.vision.barcode.common.Barcode
+import com.google.mlkit.vision.barcode.BarcodeScanning
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
+import java.util.concurrent.Executors
+
+class ScannerActivity : ComponentActivity() {
+    private val cameraExecutor = Executors.newSingleThreadExecutor()
+    private var handled = false
+    private lateinit var previewView: PreviewView
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        val root = FrameLayout(this)
+        previewView = PreviewView(this).apply {
+            layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+        }
+        root.addView(previewView)
+        val hint = TextView(this).apply {
+            text = "Apunta al código de barras"
+            setTextColor(Color.WHITE)
+            textSize = 16f
+            gravity = Gravity.CENTER
+            setPadding(24, 16, 24, 16)
+            setBackgroundColor(0x99000000.toInt())
+            layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP or Gravity.CENTER_HORIZONTAL).apply {
+                topMargin = 48
+            }
+        }
+        root.addView(hint)
+        setContentView(root)
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            startCamera()
+        } else {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA), 1001)
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 1001 && grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) startCamera() else finish()
+    }
+
+    private fun startCamera() {
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
+        cameraProviderFuture.addListener({
+            val provider = cameraProviderFuture.get()
+            val preview = Preview.Builder().build().also { it.surfaceProvider = previewView.surfaceProvider }
+            val analysis = ImageAnalysis.Builder()
+                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                .build()
+            val scanner = BarcodeScanning.getClient()
+            analysis.setAnalyzer(cameraExecutor) { proxy ->
+                val mediaImage = proxy.image
+                if (mediaImage == null || handled) {
+                    proxy.close()
+                    return@setAnalyzer
+                }
+                val image = InputImage.fromMediaImage(mediaImage, proxy.imageInfo.rotationDegrees)
+                scanner.process(image)
+                    .addOnSuccessListener { barcodes ->
+                        val barcode = barcodes.firstOrNull { !it.rawValue.isNullOrBlank() }
+                        if (barcode != null && !handled) handleResult(provider, barcode)
+                    }
+                    .addOnCompleteListener { proxy.close() }
+            }
+            provider.unbindAll()
+            provider.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis)
+        }, ContextCompat.getMainExecutor(this))
+    }
+
+    private fun handleResult(provider: ProcessCameraProvider, barcode: Barcode) {
+        handled = true
+        provider.unbindAll()
+        GmsBarcodeScanning.deliver(barcode)
+        finish()
+    }
+
+    override fun onDestroy() {
+        cameraExecutor.shutdown()
+        super.onDestroy()
+    }
+}
