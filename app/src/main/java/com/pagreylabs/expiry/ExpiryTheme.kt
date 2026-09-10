@@ -3,7 +3,6 @@ package com.pagreylabs.expiry
 import android.content.Context
 import android.os.Build
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
@@ -69,11 +68,10 @@ fun ExpiryTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable
     if (window != null) {
         window.statusBarColor = if (resolvedDark) ExpiryDarkBackground.toArgbCompat() else ExpiryBackground.toArgbCompat()
         window.navigationBarColor = if (resolvedDark) ExpiryDarkBackground.toArgbCompat() else ExpirySurface.toArgbCompat()
-        WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = !resolvedDark
-        WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightNavigationBars = !resolvedDark
-        if (Build.VERSION.SDK_INT >= 29) {
-            window.isNavigationBarContrastEnforced = false
-        }
+        val controller = WindowCompat.getInsetsController(window, window.decorView)
+        controller.isAppearanceLightStatusBars = !resolvedDark
+        controller.isAppearanceLightNavigationBars = !resolvedDark
+        if (Build.VERSION.SDK_INT >= 29) window.isNavigationBarContrastEnforced = false
     }
     MaterialTheme(
         colorScheme = if (resolvedDark) DarkColors else LightColors,
