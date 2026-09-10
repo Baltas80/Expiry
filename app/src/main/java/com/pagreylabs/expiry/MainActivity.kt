@@ -174,7 +174,7 @@ private fun ExpiryApp(
         topBar = {
             TopAppBar(
                 navigationIcon = {
-                    IconButton({ showSettings = true }) {
+                    IconButton(onClick = { showSettings = true }) {
                         Icon(Icons.Default.Menu, stringResource(R.string.settings))
                     }
                 },
@@ -190,12 +190,12 @@ private fun ExpiryApp(
                     } else {
                         Column {
                             Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                            Text("Organiza hoy, aprovecha mañana", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(stringResource(R.string.tagline), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 },
                 actions = {
-                    IconButton({ searching = !searching; if (!searching) search = "" }) {
+                    IconButton(onClick = { searching = !searching; if (!searching) search = "" }) {
                         Icon(Icons.Default.Search, stringResource(R.string.search))
                     }
                 }
@@ -203,11 +203,11 @@ private fun ExpiryApp(
         },
         bottomBar = {
             NavigationBar {
-                NavigationBarItem(selected = true, onClick = { filter = Filter.ALL }, icon = { Icon(Icons.Default.Home, null) }, label = { Text("Inicio") })
-                NavigationBarItem(selected = false, onClick = onScanBarcode, icon = { Icon(Icons.Default.QrCodeScanner, null) }, label = { Text("Escanear") })
-                NavigationBarItem(selected = false, onClick = { showAdd = true }, icon = { Icon(Icons.Default.Add, null) }, label = { Text("Añadir") })
-                NavigationBarItem(selected = false, onClick = { showStats = true }, icon = { Icon(Icons.Default.BarChart, null) }, label = { Text("Estadísticas") })
-                NavigationBarItem(selected = false, onClick = { showSettings = true }, icon = { Icon(Icons.Default.MoreHoriz, null) }, label = { Text("Más") })
+                NavigationBarItem(selected = true, onClick = { filter = Filter.ALL }, icon = { Icon(Icons.Default.Home, null) }, label = { Text(stringResource(R.string.home)) })
+                NavigationBarItem(selected = false, onClick = onScanBarcode, icon = { Icon(Icons.Default.QrCodeScanner, null) }, label = { Text(stringResource(R.string.scan_tab)) })
+                NavigationBarItem(selected = false, onClick = { showAdd = true }, icon = { Icon(Icons.Default.Add, null) }, label = { Text(stringResource(R.string.add_tab)) })
+                NavigationBarItem(selected = false, onClick = { showStats = true }, icon = { Icon(Icons.Default.BarChart, null) }, label = { Text(stringResource(R.string.stats_tab)) })
+                NavigationBarItem(selected = false, onClick = { showSettings = true }, icon = { Icon(Icons.Default.MoreHoriz, null) }, label = { Text(stringResource(R.string.more_tab)) })
             }
         },
         floatingActionButton = {
@@ -236,8 +236,8 @@ private fun ExpiryApp(
                         }
                         Spacer(Modifier.width(14.dp))
                         Column(Modifier.weight(1f)) {
-                            Text("Tu despensa", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                            Text("Todo bajo control", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(stringResource(R.string.pantry_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.pantry_subtitle), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
@@ -245,10 +245,10 @@ private fun ExpiryApp(
 
             item {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SummaryCard(counts[Filter.EXPIRED] ?: 0, "Caducados", MaterialTheme.colorScheme.error, Modifier.weight(1f))
-                    SummaryCard(counts[Filter.TODAY] ?: 0, "Caducan hoy", MaterialTheme.colorScheme.tertiary, Modifier.weight(1f))
-                    SummaryCard(counts[Filter.SOON] ?: 0, "Próximos", MaterialTheme.colorScheme.tertiary, Modifier.weight(1f))
-                    SummaryCard(counts[Filter.OK] ?: 0, "En fecha", MaterialTheme.colorScheme.primary, Modifier.weight(1f))
+                    SummaryCard(counts[Filter.EXPIRED] ?: 0, stringResource(R.string.expired_count_label), MaterialTheme.colorScheme.error, Modifier.weight(1f))
+                    SummaryCard(counts[Filter.TODAY] ?: 0, stringResource(R.string.today_count_label), MaterialTheme.colorScheme.tertiary, Modifier.weight(1f))
+                    SummaryCard(counts[Filter.SOON] ?: 0, stringResource(R.string.soon_count_label), MaterialTheme.colorScheme.tertiary, Modifier.weight(1f))
+                    SummaryCard(counts[Filter.OK] ?: 0, stringResource(R.string.in_date_count_label), MaterialTheme.colorScheme.primary, Modifier.weight(1f))
                 }
             }
 
@@ -262,7 +262,7 @@ private fun ExpiryApp(
 
             item {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Productos próximos", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                    Text(stringResource(R.string.upcoming_products), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                     Text("${filtered.size}", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                 }
             }
