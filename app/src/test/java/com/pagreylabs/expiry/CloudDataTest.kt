@@ -1,6 +1,5 @@
 package com.pagreylabs.expiry
 
-import org.json.JSONObject
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -8,17 +7,18 @@ import org.junit.Test
 class CloudDataTest {
     @Test
     fun serverJsonContainsOnlyCloudEligibleCollections() {
+        val now = System.currentTimeMillis()
         val profile = ExpiryUserProfile(
             userId = "test",
             syncConsent = true,
-            consentAcceptedAt = 1_000L,
-            retentionUntil = 10_000L
+            consentAcceptedAt = now - 1_000L,
+            retentionUntil = now + 10_000L
         )
         val snapshot = ExpiryCloudSnapshot(
             user = profile,
             products = emptyList(),
             scanHistory = emptyList(),
-            generatedAt = 2_000L
+            generatedAt = now
         )
 
         val json = snapshot.toServerJson()
