@@ -114,16 +114,9 @@ fun ExpiryTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable
 
     val window = (context as? ComponentActivity)?.window
     if (window != null) {
-        window.statusBarColor = if (resolvedDark) {
-            ExpiryDarkBackground.toArgbCompat()
-        } else {
-            ExpiryBackground.toArgbCompat()
-        }
-        window.navigationBarColor = if (resolvedDark) {
-            ExpiryDarkBackground.toArgbCompat()
-        } else {
-            ExpirySurface.toArgbCompat()
-        }
+        // Keep the existing Expiry colors while using WindowCompat for system-bar icon
+        // appearance. Avoid deprecated statusBarColor/navigationBarColor setters.
+        WindowCompat.setDecorFitsSystemWindows(window, true)
         val controller = WindowCompat.getInsetsController(window, window.decorView)
         controller.isAppearanceLightStatusBars = !resolvedDark
         controller.isAppearanceLightNavigationBars = !resolvedDark
