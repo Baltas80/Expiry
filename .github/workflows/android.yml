@@ -22,7 +22,20 @@ jobs:
       - run: gradle clean test
       - run: gradle lint
       - run: gradle assembleDebug
-      - run: gradle bundleRelease
+      - name: Prepare optional production keystore
+        if: ${{ secrets.EXPIRY_KEYSTORE_BASE64 != '' }}
+        env:
+          EXPIRY_KEYSTORE_BASE64: ${{ secrets.EXPIRY_KEYSTORE_BASE64 }}
+        run: |
+          printf '%s' "$EXPIRY_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/expiry-upload-key.jks"
+          chmod 600 "$RUNNER_TEMP/expiry-upload-key.jks"
+      - name: Build release bundle
+        env:
+          EXPIRY_KEYSTORE_PATH: ${{ runner.temp }}/expiry-upload-key.jks
+          EXPIRY_KEYSTORE_PASSWORD: ${{ secrets.EXPIRY_KEYSTORE_PASSWORD }}
+          EXPIRY_KEY_ALIAS: ${{ secrets.EXPIRY_KEY_ALIAS }}
+          EXPIRY_KEY_PASSWORD: ${{ secrets.EXPIRY_KEY_PASSWORD }}
+        run: gradle bundleRelease
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
