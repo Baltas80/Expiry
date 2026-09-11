@@ -34,6 +34,31 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
+
+    // Release signing is enabled only when all credentials are supplied by the
+    // CI environment. No signing material or passwords are stored in source.
+    val releaseKeystorePath = System.getenv("EXPIRY_KEYSTORE_PATH")
+    val releaseStorePassword = System.getenv("EXPIRY_KEYSTORE_PASSWORD")
+    val releaseKeyAlias = System.getenv("EXPIRY_KEY_ALIAS")
+    val releaseKeyPassword = System.getenv("EXPIRY_KEY_PASSWORD")
+    val releaseSigningReady = listOf(
+        releaseKeystorePath,
+        releaseStorePassword,
+        releaseKeyAlias,
+        releaseKeyPassword
+    ).all { !it.isNullOrBlank() }
+
+    if (releaseSigningReady) {
+        signingConfigs.create("production") {
+            storeFile = file(releaseKeystorePath!!)
+            storePassword = releaseStorePassword
+            keyAlias = releaseKeyAlias
+            keyPassword = releaseKeyPassword
+        }
+        buildTypes.getByName("release") {
+            signingConfig = signingConfigs.getByName("production")
+        }
+    }
 }
 
 configurations.configureEach {
