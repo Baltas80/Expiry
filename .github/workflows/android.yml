@@ -37,6 +37,11 @@ jobs:
           EXPIRY_KEY_ALIAS: ${{ secrets.EXPIRY_KEY_ALIAS }}
           EXPIRY_KEY_PASSWORD: ${{ secrets.EXPIRY_KEY_PASSWORD }}
         run: gradle bundleRelease
+      - name: Verify release bundle signature
+        run: |
+          AAB="app/build/outputs/bundle/release/app-release.aab"
+          test -s "$AAB"
+          jarsigner -verify -strict "$AAB"
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
