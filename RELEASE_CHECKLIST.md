@@ -12,30 +12,37 @@
 
 ## Firma de producción
 
-La compilación actual genera el AAB correctamente, pero la firma de publicación debe configurarse antes de subir la aplicación a Google Play.
+La configuración de firma de producción ya está preparada en `app/build.gradle.kts`: solo activa la firma cuando recibe las cuatro credenciales necesarias mediante variables de entorno. Sin esas credenciales, CI puede seguir construyendo y validando el AAB, pero ese AAB no debe considerarse listo para subir a Google Play.
 
 No se deben guardar en Git el keystore, su contraseña, la contraseña de la clave ni ningún fichero que contenga secretos.
 
-### Secretos previstos para CI
+### Contrato de secretos para CI
 
 Configurar en GitHub Actions los valores equivalentes a:
 
-- `EXPIRY_KEYSTORE_BASE64`: keystore de producción codificado en Base64.
+- `EXPIRY_KEYSTORE_PATH`: ruta al keystore disponible durante el job.
 - `EXPIRY_KEYSTORE_PASSWORD`: contraseña del keystore.
 - `EXPIRY_KEY_ALIAS`: alias de la clave de publicación.
 - `EXPIRY_KEY_PASSWORD`: contraseña de la clave.
 
-Los nombres anteriores son una propuesta de contrato para la automatización; no contienen valores reales.
+Los nombres anteriores son el contrato que utiliza actualmente la configuración de Gradle; no contienen valores reales.
 
-### Antes de publicar
+### Estado actual
 
+- [x] Configuración `signingConfigs.production` preparada y condicionada a credenciales completas.
+- [x] `release` usa la configuración de producción cuando las cuatro variables están presentes.
+- [x] Keystores, contraseñas y ficheros de firma excluidos del repositorio.
+- [x] CI valida `bundleRelease` sin requerir secretos.
 - [ ] Crear/confirmar la clave de firma de producción.
 - [ ] Guardar el keystore en un lugar seguro fuera del repositorio.
-- [ ] Configurar los cuatro secretos de CI.
-- [ ] Añadir la configuración de `signingConfigs.release` usando únicamente secretos/variables de CI.
-- [ ] Verificar que `bundleRelease` produce un AAB firmado.
+- [ ] Configurar las cuatro variables/secretos de CI y proporcionar el keystore de forma segura al job.
+- [ ] Ejecutar `bundleRelease` con las credenciales de producción.
+- [ ] Verificar criptográficamente que el AAB generado está firmado con la clave esperada.
 - [ ] Conservar de forma segura la clave de firma; no hay que perderla.
-- [ ] Crear la aplicación en Play Console.
+
+## Google Play
+
+- [ ] Crear/confirmar la aplicación en Play Console.
 - [ ] Completar ficha de tienda, privacidad, contenido y declaraciones de datos.
 - [ ] Subir primero a prueba interna.
 - [ ] Validar instalación, actualización, notificaciones, escáner y exportación/importación.
