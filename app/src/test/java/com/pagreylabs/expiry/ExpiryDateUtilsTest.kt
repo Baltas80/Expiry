@@ -28,6 +28,13 @@ class ExpiryDateUtilsTest {
     }
 
     @Test
+    fun calendarDayDistanceIsCorrectAcrossLeapDay() {
+        val now = calendar(2028, Calendar.FEBRUARY, 28, 10)
+        val expiry = calendar(2028, Calendar.MARCH, 1, 10)
+        assertEquals(2, ExpiryDateUtils.daysUntil(expiry.timeInMillis, now.timeInMillis))
+    }
+
+    @Test
     fun reminderUsesCalendarDaysAndDaytimeHour() {
         val expiry = calendar(2026, Calendar.MARCH, 30, 23)
         val trigger = Calendar.getInstance().apply {
@@ -58,6 +65,21 @@ class ExpiryDateUtilsTest {
         val now = calendar(2026, Calendar.MARCH, 12, 11)
         val expiry = calendar(2026, Calendar.MARCH, 12, 23)
         assertEquals(-1, ExpiryDateUtils.maxValidReminderDays(expiry.timeInMillis, now.timeInMillis))
+    }
+
+    @Test
+    fun reminderDaysAreClampedToSupportedRange() {
+        val expiry = calendar(2026, Calendar.JANUARY, 1, 23)
+        val atZero = ExpiryDateUtils.reminderTrigger(expiry.timeInMillis, -20)
+        val at365 = ExpiryDateUtils.reminderTrigger(expiry.timeInMillis, 500)
+
+        val zeroCalendar = Calendar.getInstance().apply { timeInMillis = atZero }
+        val maxCalendar = Calendar.getInstance().apply { timeInMillis = at365 }
+        assertEquals(Calendar.JANUARY, zeroCalendar.get(Calendar.MONTH))
+        assertEquals(1, zeroCalendar.get(Calendar.DAY_OF_MONTH))
+        assertEquals(2025, maxCalendar.get(Calendar.YEAR))
+        assertEquals(Calendar.JANUARY, maxCalendar.get(Calendar.MONTH))
+        assertEquals(1, maxCalendar.get(Calendar.DAY_OF_MONTH))
     }
 
     @Test
