@@ -12,7 +12,9 @@
 
 ## Firma de producción
 
-La configuración de firma de producción ya está preparada en `app/build.gradle.kts`: solo activa la firma cuando recibe las cuatro credenciales necesarias mediante variables de entorno. Sin esas credenciales, CI puede seguir construyendo y validando el AAB, pero ese AAB no debe considerarse listo para subir a Google Play.
+La configuración de firma de producción está preparada en `app/build.gradle.kts`: solo activa la firma cuando recibe las cuatro credenciales necesarias mediante variables de entorno. Sin esas credenciales, CI puede seguir construyendo y validando el AAB, pero ese AAB no debe considerarse listo para subir a Google Play.
+
+El workflow de GitHub Actions puede recibir el keystore como Base64 mediante un secreto, reconstruirlo temporalmente dentro del runner y pasar su ruta a Gradle. El archivo temporal queda fuera del repositorio y no se publica como artefacto.
 
 No se deben guardar en Git el keystore, su contraseña, la contraseña de la clave ni ningún fichero que contenga secretos.
 
@@ -20,22 +22,23 @@ No se deben guardar en Git el keystore, su contraseña, la contraseña de la cla
 
 Configurar en GitHub Actions los valores equivalentes a:
 
-- `EXPIRY_KEYSTORE_PATH`: ruta al keystore disponible durante el job.
+- `EXPIRY_KEYSTORE_BASE64`: contenido Base64 del keystore de producción.
 - `EXPIRY_KEYSTORE_PASSWORD`: contraseña del keystore.
 - `EXPIRY_KEY_ALIAS`: alias de la clave de publicación.
 - `EXPIRY_KEY_PASSWORD`: contraseña de la clave.
 
-Los nombres anteriores son el contrato que utiliza actualmente la configuración de Gradle; no contienen valores reales.
+El workflow reconstruye el archivo en `$RUNNER_TEMP/expiry-upload-key.jks` cuando existe `EXPIRY_KEYSTORE_BASE64`. Gradle utiliza esa ruta mediante `EXPIRY_KEYSTORE_PATH`.
 
 ### Estado actual
 
 - [x] Configuración `signingConfigs.production` preparada y condicionada a credenciales completas.
 - [x] `release` usa la configuración de producción cuando las cuatro variables están presentes.
+- [x] Workflow preparado para recibir el keystore mediante secreto Base64 y reconstruirlo temporalmente.
 - [x] Keystores, contraseñas y ficheros de firma excluidos del repositorio.
 - [x] CI valida `bundleRelease` sin requerir secretos.
-- [ ] Crear/confirmar la clave de firma de producción.
-- [ ] Guardar el keystore en un lugar seguro fuera del repositorio.
-- [ ] Configurar las cuatro variables/secretos de CI y proporcionar el keystore de forma segura al job.
+- [x] Crear/confirmar la clave de firma de producción.
+- [x] Guardar el keystore en un lugar seguro fuera del repositorio.
+- [ ] Configurar los cuatro secretos de CI y proporcionar el keystore de forma segura al job.
 - [ ] Ejecutar `bundleRelease` con las credenciales de producción.
 - [ ] Verificar criptográficamente que el AAB generado está firmado con la clave esperada.
 - [ ] Conservar de forma segura la clave de firma; no hay que perderla.
