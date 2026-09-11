@@ -12,8 +12,8 @@ android {
         applicationId = "com.pagreylabs.expiry"
         minSdk = 23
         targetSdk = 35
-        versionCode = 5
-        versionName = "0.5.0"
+        versionCode = 6
+        versionName = "1.0.0"
         // Italian is intentionally excluded because a transitive dependency ships
         // a malformed values-it resource that fails AAPT during resource merging.
         resourceConfigurations.addAll(setOf(
