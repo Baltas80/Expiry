@@ -23,12 +23,13 @@ jobs:
       - run: gradle lint
       - run: gradle assembleDebug
       - name: Prepare optional production keystore
-        if: ${{ secrets.EXPIRY_KEYSTORE_BASE64 != '' }}
         env:
           EXPIRY_KEYSTORE_BASE64: ${{ secrets.EXPIRY_KEYSTORE_BASE64 }}
         run: |
-          printf '%s' "$EXPIRY_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/expiry-upload-key.jks"
-          chmod 600 "$RUNNER_TEMP/expiry-upload-key.jks"
+          if [ -n "$EXPIRY_KEYSTORE_BASE64" ]; then
+            printf '%s' "$EXPIRY_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/expiry-upload-key.jks"
+            chmod 600 "$RUNNER_TEMP/expiry-upload-key.jks"
+          fi
       - name: Build release bundle
         env:
           EXPIRY_KEYSTORE_PATH: ${{ runner.temp }}/expiry-upload-key.jks
