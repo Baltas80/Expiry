@@ -6,3 +6,9 @@ local.properties
 build
 captures
 .externalNativeBuild
+
+# Production signing material — never commit these files.
+*.jks
+*.keystore
+*.p12
+expiry-signing.properties
