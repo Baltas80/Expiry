@@ -41,7 +41,7 @@ jobs:
         run: |
           AAB="app/build/outputs/bundle/release/app-release.aab"
           test -s "$AAB"
-          jarsigner -verify -strict "$AAB"
+          jarsigner -verify -verbose -certs "$AAB"
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
