@@ -3,6 +3,9 @@ package com.pagreylabs.expiry
 import android.content.Context
 import android.os.Build
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -11,14 +14,14 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 
-// Approved Expiry visual language: green as the primary brand, blue for secondary
-// information, amber for upcoming items and red for expired items.
 private val ExpiryGreen = Color(0xFF2E7D32)
 private val ExpiryGreenLight = Color(0xFF81C784)
 private val ExpiryBlue = Color(0xFF0288D1)
@@ -114,16 +117,8 @@ fun ExpiryTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable
 
     val window = (context as? ComponentActivity)?.window
     if (window != null) {
-        window.statusBarColor = if (resolvedDark) {
-            ExpiryDarkBackground.toArgbCompat()
-        } else {
-            ExpiryBackground.toArgbCompat()
-        }
-        window.navigationBarColor = if (resolvedDark) {
-            ExpiryDarkBackground.toArgbCompat()
-        } else {
-            ExpirySurface.toArgbCompat()
-        }
+        window.statusBarColor = if (resolvedDark) ExpiryDarkBackground.toArgbCompat() else ExpiryBackground.toArgbCompat()
+        window.navigationBarColor = if (resolvedDark) ExpiryDarkBackground.toArgbCompat() else ExpirySurface.toArgbCompat()
         val controller = WindowCompat.getInsetsController(window, window.decorView)
         controller.isAppearanceLightStatusBars = !resolvedDark
         controller.isAppearanceLightNavigationBars = !resolvedDark
@@ -133,9 +128,17 @@ fun ExpiryTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable
     MaterialTheme(
         colorScheme = if (resolvedDark) DarkColors else LightColors,
         typography = ExpiryTypography,
-        shapes = ExpiryShapes,
-        content = content
-    )
+        shapes = ExpiryShapes
+    ) {
+        Box(Modifier.fillMaxSize()) {
+            content()
+            ExpiryAdBanner(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 80.dp)
+            )
+        }
+    }
 }
 
 private fun Color.toArgbCompat(): Int = android.graphics.Color.argb(
