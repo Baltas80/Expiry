@@ -63,3 +63,7 @@ Rewards permanece desactivado (`REWARDS_ENABLED = false`) y no aparece en la int
 ## Localización
 
 Expiry está preparado para una cobertura internacional amplia mediante recursos Android por locale. Las traducciones específicas se validan mediante la comprobación automática de claves de recursos.
+
+## Privacidad
+
+Consulta la [Política de Privacidad de Expiry](PRIVACY_POLICY.md).
