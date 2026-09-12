@@ -1,0 +1,1 @@
+Ad banner work is isolated on feature/admob-banner until CI validation succeeds.
