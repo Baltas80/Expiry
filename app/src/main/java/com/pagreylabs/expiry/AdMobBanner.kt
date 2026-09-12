@@ -36,10 +36,10 @@ fun ExpiryAdBanner(modifier: Modifier = Modifier) {
             ConsentRequestParameters.Builder().build(),
             {
                 UserMessagingPlatform.loadAndShowConsentFormIfRequired(activity) {
-                    canRequestAds = consent.canRequestAds
+                    canRequestAds = consent.canRequestAds()
                 }
             },
-            { canRequestAds = consent.canRequestAds }
+            { canRequestAds = consent.canRequestAds() }
         )
     }
     if (!canRequestAds) return
