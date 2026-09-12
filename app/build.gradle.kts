@@ -12,10 +12,8 @@ android {
         applicationId = "com.pagreylabs.expiry"
         minSdk = 23
         targetSdk = 35
-        versionCode = 6
+        versionCode = 7
         versionName = "1.0.0"
-        // Italian is intentionally excluded because a transitive dependency ships
-        // a malformed values-it resource that fails AAPT during resource merging.
         resourceConfigurations.addAll(setOf(
             "es", "en", "ca", "eu", "gl", "fr", "de", "pt", "nl", "pl", "cs",
             "da", "fi", "sv", "nb", "ro", "sk", "sl", "hu", "hr", "bg", "el", "ru",
@@ -23,6 +21,10 @@ android {
             "hi", "bn", "pa", "gu", "mr", "ne", "as", "or", "ta", "te", "kn", "ml",
             "si", "th", "lo", "bo", "my", "km", "ko", "ja", "zh-rCN", "zh-rTW"
         ))
+        manifestPlaceholders["ADMOB_APP_ID"] = providers.gradleProperty("admobAppId")
+            .orElse("ca-app-pub-3940256099942544~3347511713")
+            .get()
+        buildConfigField("String", "ADMOB_BANNER_AD_UNIT_ID", "\"ca-app-pub-3940256099942544/9214589741\"")
     }
 
     buildFeatures {
@@ -35,8 +37,6 @@ android {
     }
     kotlinOptions { jvmTarget = "17" }
 
-    // Release signing is enabled only when all credentials are supplied by the
-    // CI environment. No signing material or passwords are stored in source.
     val releaseKeystorePath = System.getenv("EXPIRY_KEYSTORE_PATH")
     val releaseStorePassword = System.getenv("EXPIRY_KEYSTORE_PASSWORD")
     val releaseKeyAlias = System.getenv("EXPIRY_KEY_ALIAS")
@@ -64,8 +64,6 @@ android {
 configurations.configureEach {
     resolutionStrategy.eachDependency {
         if (requested.group == "com.google.android.gms" && requested.name == "play-services-mlkit-barcode-scanning") {
-            // 18.3.1 ships a malformed locale resource. 18.2.0 exposes the same
-            // barcode scanning API used here without that resource defect.
             useVersion("18.2.0")
             because("Keep AAPT-safe barcode scanning resources while retaining BarcodeScanning API")
         }
@@ -84,6 +82,8 @@ dependencies {
     implementation("androidx.camera:camera-lifecycle:1.4.2")
     implementation("androidx.camera:camera-view:1.4.2")
     implementation("com.google.mlkit:barcode-scanning:17.3.0")
+    implementation("com.google.android.gms:play-services-ads:25.4.0")
+    implementation("com.google.android.ump:user-messaging-platform:4.0.0")
     implementation("io.coil-kt:coil-compose:2.7.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
 
