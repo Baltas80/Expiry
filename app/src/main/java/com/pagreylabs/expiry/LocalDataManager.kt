@@ -32,7 +32,8 @@ class LocalDataManager(context: Context) {
     fun deleteAllLocalData() {
         val repository = ExpiryRepository(appContext)
         val alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        repository.all().forEach { item ->
+        val items = repository.all()
+        for (item in items) {
             val intent = Intent(appContext, ExpiryAlarmReceiver::class.java).apply {
                 putExtra("id", item.id)
             }
