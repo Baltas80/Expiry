@@ -11,7 +11,10 @@ fun exportExpiryBackup(context: Context): String {
     val prefs = context.getSharedPreferences("expiry_store", Context.MODE_PRIVATE)
     val outcomes = context.getSharedPreferences("expiry_local_outcomes", Context.MODE_PRIVATE)
     fun encode(source: android.content.SharedPreferences): JSONObject = JSONObject().apply {
-        source.all.forEach { (key, value) ->
+        val entries = source.all
+        for (entry in entries) {
+            val key = entry.key
+            val value = entry.value
             when (value) {
                 is String -> put(key, value)
                 is Boolean -> put(key, value)
@@ -40,7 +43,9 @@ fun importExpiryBackup(context: Context, raw: String): Boolean = runCatching {
         val target = context.getSharedPreferences(name, Context.MODE_PRIVATE)
         val editor = target.edit().clear()
         val source = root.getJSONObject(name)
-        source.keys().forEach { key ->
+        val keys = source.keys()
+        while (keys.hasNext()) {
+            val key = keys.next()
             when (val value = source.get(key)) {
                 is Boolean -> editor.putBoolean(key, value)
                 is Int -> editor.putInt(key, value)
