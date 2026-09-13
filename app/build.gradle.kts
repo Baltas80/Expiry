@@ -21,7 +21,6 @@ android {
             "hi", "bn", "pa", "gu", "mr", "ne", "as", "or", "ta", "te", "kn", "ml",
             "si", "th", "lo", "bo", "my", "km", "ko", "ja", "zh-rCN", "zh-rTW"
         ))
-        manifestPlaceholders["ADMOB_APP_ID"] = providers.gradleProperty("admobAppId").orElse("ADMOB_APP_ID_NOT_CONFIGURED").get()
         buildConfigField("String", "ADMOB_BANNER_AD_UNIT_ID", "\"ADMOB_BANNER_ID_NOT_CONFIGURED\"")
     }
 
