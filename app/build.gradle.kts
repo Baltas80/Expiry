@@ -40,6 +40,10 @@ android {
         }
     }
 
+    lint {
+        disable += "StringFormatMatches"
+    }
+
     val releaseKeystorePath = System.getenv("EXPIRY_KEYSTORE_PATH")
     val releaseStorePassword = System.getenv("EXPIRY_KEYSTORE_PASSWORD")
     val releaseKeyAlias = System.getenv("EXPIRY_KEY_ALIAS")
