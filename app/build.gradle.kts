@@ -6,13 +6,13 @@ plugins {
 
 android {
     namespace = "com.pagreylabs.expiry"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.pagreylabs.expiry"
         minSdk = 23
-        targetSdk = 35
-        versionCode = 6
+        targetSdk = 36
+        versionCode = 8
         versionName = "1.0.0"
         // Italian is intentionally excluded because a transitive dependency ships
         // a malformed values-it resource that fails AAPT during resource merging.
@@ -33,7 +33,11 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions { jvmTarget = "17" }
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        }
+    }
 
     // Release signing is enabled only when all credentials are supplied by the
     // CI environment. No signing material or passwords are stored in source.
