@@ -18,7 +18,7 @@ class PremiumBillingManager(private val context: Context) {
     companion object { const val PREMIUM_PRODUCT_ID = "expiry_premium_lifetime" }
 
     private val purchasesUpdatedListener = PurchasesUpdatedListener { result, purchases ->
-        if (result.responseCode == BillingClient.BillingResponseCode.OK && purchases != null) purchases.forEach(::handlePurchase)
+        if (result.responseCode == BillingClient.BillingResponseCode.OK && purchases != null) { for (purchase in purchases) handlePurchase(purchase) }
     }
 
     private val billingClient = BillingClient.newBuilder(context)
