@@ -48,3 +48,26 @@ El workflow reconstruye el archivo en `$RUNNER_TEMP/expiry-upload-key.jks` y Gra
 ## Regla de seguridad
 
 Nunca imprimir secretos en logs de CI ni introducir contraseñas, claves privadas o keystores en commits.
+
+
+## Monetización Free / Premium
+
+- [x] Arquitectura de entitlement Premium separada de la UI.
+- [x] Google Play Billing 9.1.0 integrado.
+- [x] Producto Premium definido como `expiry_premium_lifetime`.
+- [x] Banner adaptativo anclado encima de la navegación inferior para usuarios Free.
+- [x] Usuarios Premium no instancian el banner.
+- [x] Debug usa los IDs de prueba oficiales de Google.
+- [ ] Crear/configurar el producto `expiry_premium_lifetime` en Play Console.
+- [ ] Configurar `EXPIRY_ADMOB_APP_ID` y `EXPIRY_ADMOB_BANNER_UNIT_ID` para release.
+- [ ] Completar configuración de Privacidad y Mensajería de AdMob.
+- [ ] Añadir verificación server-side del token de compra antes del lanzamiento comercial.
+
+## Accesibilidad
+
+- [x] Controles de editar/eliminar con objetivo táctil de 48dp.
+- [x] Acción de resultado con altura mínima de 48dp.
+- [x] Campo de búsqueda con etiqueta explícita.
+- [x] Tarjetas de resumen con semántica para lectores de pantalla.
+- [ ] Validación manual con TalkBack en dispositivo físico.
+- [ ] Prueba con escalado de fuente grande y modo alto contraste.
