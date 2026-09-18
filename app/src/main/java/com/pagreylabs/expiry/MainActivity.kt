@@ -145,7 +145,7 @@ private fun ExpiryApp(
     var showSettings by remember { mutableStateOf(false) }
     var deleteTarget by remember { mutableStateOf<ExpiryItem?>(null) }
     var outcomeTarget by remember { mutableStateOf<ExpiryItem?>(null) }
-    val isPremium by PremiumEntitlement.isPremium.collectAsState()
+    val isPremium = PremiumEntitlement.isPremium
 
     val filtered = remember(items, search, filter) {
         items.filter { item ->
