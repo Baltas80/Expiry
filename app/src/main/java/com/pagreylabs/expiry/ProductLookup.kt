@@ -89,12 +89,12 @@ object ProductLookup {
         val query = "?product_type=all&" + localizationQuery() +
             "&fields=code,product_name,abbreviated_product_name,generic_name,categories,categories_tags,image_front_url,image_url"
 
-        val v3 = requestProduct("https://world.openfoodfacts.org/api/v3/product/" + barcode + query)
-        return v3 ?: requestProduct("https://world.openfoodfacts.org/api/v2/product/" + barcode + query)
+        val v3 = requestProduct("https://world.openfoodfacts.org/api/v3/product/" + barcode + query, barcode)
+        return v3 ?: requestProduct("https://world.openfoodfacts.org/api/v2/product/" + barcode + query, barcode)
     }
 
     /** v3/v2 share the same result parsing; HttpURLConnection follows redirects. */
-    private fun requestProduct(urlText: String): Result? {
+    private fun requestProduct(urlText: String, barcode: String): Result? {
         val url = URL(urlText)
         val connection = (url.openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
