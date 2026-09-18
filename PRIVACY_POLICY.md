@@ -22,7 +22,7 @@ Estos datos se almacenan localmente en el dispositivo y no se envían a un servi
 
 Expiry puede solicitar acceso a la cámara para escanear códigos de barras. Las imágenes de la cámara se utilizan para realizar el escaneo y no se almacenan como fotografías por Expiry como parte de esta función.
 
-Cuando se escanea un código de barras, la aplicación puede consultar información pública de productos a través de Internet para completar datos del producto cuando dicha información esté disponible. La disponibilidad y el tratamiento de esa información pueden depender del servicio externo utilizado.
+Cuando se escanea un código de barras, la aplicación puede consultar información pública de productos a través de Internet para completar la identificación del producto cuando dicha información esté disponible. Esta consulta se utiliza para obtener datos descriptivos como nombre, categoría o imagen. Expiry no importa ni utiliza una fecha externa de caducidad o consumo preferente para controlar las fechas del usuario: la fecha que gobierna los recordatorios y estados de Expiry es la que el usuario introduce o confirma para su producto.
 
 ### Notificaciones
 

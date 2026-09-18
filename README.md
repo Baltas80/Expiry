@@ -24,6 +24,16 @@ Expiry es una app sencilla para controlar fechas de caducidad y recibir avisos a
 9. Consulta opcional de información pública de producto.
 10. Registro local de consumo/desperdicio.
 
+## Consulta global de códigos de barras
+
+El escáner acepta los formatos de código soportados por ML Kit y la capa de consulta está preparada para identificadores de producto internacionales.
+
+La consulta remota utiliza el endpoint universal de Open Food Facts con \`product_type=all\`, que puede resolver registros de Open Food Facts, Open Beauty Facts, Open Pet Food Facts y Open Products Facts. También se envían el idioma y país del dispositivo para localizar la respuesta cuando el servicio dispone de esa información.
+
+Antes de consultar la red, Expiry revisa su catálogo local. Después aplica normalizaciones conservadoras para códigos GTIN habituales (por ejemplo, UPC-A/EAN-13, GTIN-14) y extrae GTIN desde GS1 AI (01) cuando el escáner devuelve una cadena GS1 estructurada.
+
+La cobertura no puede garantizar que exista información para el 100 % de los códigos del mundo: un código puede ser válido y no tener todavía un registro público de producto. En esos casos el usuario puede introducir los datos manualmente.
+
 ## Arquitectura preparada para evolución
 
 La aplicación contiene infraestructura futura desactivada para permitir una evolución sin rediseñar el almacenamiento local. Incluye contratos para sincronización, perfil extensible y un sistema interno de recompensas basado en puntos.
@@ -40,7 +50,7 @@ Estas funciones no están activas ni visibles en la versión actual. No se reali
 
 ### Rewards
 
-El módulo interno `Expiry Rewards` está preparado para gestionar:
+El módulo interno \`Expiry Rewards\` está preparado para gestionar:
 
 - Expiry Points (EP).
 - Libro mayor de puntos.
@@ -49,7 +59,7 @@ El módulo interno `Expiry Rewards` está preparado para gestionar:
 - Patrocinadores.
 - Canje futuro de puntos.
 
-Rewards permanece desactivado (`REWARDS_ENABLED = false`) y no aparece en la interfaz actual.
+Rewards permanece desactivado (\`REWARDS_ENABLED = false\`) y no aparece en la interfaz actual.
 
 ## Principios
 
