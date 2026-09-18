@@ -64,10 +64,10 @@ data class ExpiryCloudSnapshot(
             put("user", user.toJson())
             put("products", JSONArray().apply { for (product in products) put(product.toJson()) })
             put("scanHistory", JSONArray().apply {
-                scanHistory.forEach {
+                for (scan in scanHistory) {
                     put(JSONObject().apply {
-                        put("barcode", it.barcode)
-                        put("timestamp", it.timestamp)
+                        put("barcode", scan.barcode)
+                        put("timestamp", scan.timestamp)
                     })
                 }
             })
