@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -37,7 +39,7 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions { jvmTarget = "17" }
+    kotlin {\n        compilerOptions {\n            jvmTarget = JvmTarget.fromTarget("17")\n        }\n    }
 
     // Release signing is enabled only when all credentials are supplied by the
     // CI environment. No signing material or passwords are stored in source.
