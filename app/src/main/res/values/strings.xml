@@ -101,4 +101,12 @@
     <string name="settings_privacy_description">Los datos de inventario, escaneos e historial se mantienen localmente. La copia manual solo se crea cuando tú la solicitas.</string>
     <string name="settings_about_section">Acerca de Expiry</string>
     <string name="settings_about_description">Expiry ayuda a controlar las fechas de caducidad, reducir desperdicio y mantener una despensa organizada.</string>
+    <string name="settings_premium_section">Expiry Premium</string>
+    <string name="premium_title">Sin publicidad, siempre</string>
+    <string name="premium_description">Disfruta de Expiry sin anuncios y conserva todas tus funciones y tus datos.</string>
+    <string name="premium_active">Premium activo</string>
+    <string name="premium_upgrade">Pasar a Premium</string>
+    <string name="premium_unavailable">Premium todavía no está disponible para compra en Google Play.</string>
+    <string name="privacy_ad_options">Opciones de privacidad de publicidad</string>
+
 </resources>
