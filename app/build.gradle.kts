@@ -1,7 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -115,6 +113,7 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.7.0")
     implementation("com.google.android.gms:play-services-ads:25.4.0")
     implementation("com.google.android.ump:user-messaging-platform:4.0.0")
+    implementation("com.google.guava:guava:33.6.0-android")
     implementation("com.android.billingclient:billing-ktx:9.1.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
 
