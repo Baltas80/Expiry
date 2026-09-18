@@ -40,8 +40,8 @@ object ProductLookup {
      * Keeps candidate generation deterministic and network-free for unit tests.
      *
      * We preserve the scanned value first, then add common GTIN equivalents:
-     * UPC-A <-> EAN-13-with-leading-zero, 11-digit UPC payload, and zero-padded
-     * GTIN-14 variants. For GS1 strings containing AI (01), the 14-digit GTIN
+     * UPC-A <-> EAN-13-with-leading-zero, 11-digit UPC payload, and GTIN-14
+     * base variants. For GS1 strings containing AI (01), the 14-digit GTIN
      * is extracted too.
      */
     internal fun barcodeCandidates(barcode: String): List<String> {
@@ -70,7 +70,7 @@ object ProductLookup {
                 12 -> add("0$numeric")
                 13 -> if (numeric.startsWith("0")) add(numeric.substring(1))
                 14 -> {
-                    if (numeric.startsWith("0")) add(numeric.substring(1))
+                    add(numeric.substring(1))
                     add(numeric.substring(1, 13))
                 }
             }
@@ -111,7 +111,7 @@ object ProductLookup {
             if (connection.responseCode !in 200..299) return null
             val root = JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
             if (root.optInt("status", 0) != 1) return null
-            productResult(root.optJSONObject("product"), urlText.substringAfter("/product/").substringBefore("?"))
+            productResult(root.optJSONObject("product"), barcode)
         } finally {
             connection.disconnect()
         }
