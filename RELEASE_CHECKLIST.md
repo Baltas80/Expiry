@@ -50,6 +50,11 @@ El workflow reconstruye el archivo en `$RUNNER_TEMP/expiry-upload-key.jks` y Gra
 Nunca imprimir secretos en logs de CI ni introducir contraseñas, claves privadas o keystores en commits.
 
 
+## Compatibilidad de toolchain
+
+- [x] Kotlin actualizado a 2.4.20 para compatibilidad binaria con los SDK de Google utilizados por la monetización.
+- [x] Objetivo JVM migrado a `compilerOptions` tipado.
+
 ## Monetización Free / Premium
 
 - [x] Arquitectura de entitlement Premium separada de la UI.
