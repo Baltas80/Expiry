@@ -216,7 +216,7 @@ private fun ExpirySettingsDialog(
     val notificationsEnabled = if (Build.VERSION.SDK_INT >= 24) (context.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager).areNotificationsEnabled() else true
     var themeMode by remember { mutableStateOf(prefs.getString("theme_mode", "system") ?: "system") }
     var confirmClear by remember { mutableStateOf(false) }
-    val isPremium by PremiumEntitlement.isPremium.collectAsState()
+    val isPremium = PremiumEntitlement.isPremium
     val exportLauncher = androidx.activity.compose.rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         if (uri != null) runCatching { context.contentResolver.openOutputStream(uri)?.use { it.write(exportExpiryBackup(context).toByteArray(Charsets.UTF_8)) } }.onFailure { Toast.makeText(context, R.string.data_operation_error, Toast.LENGTH_SHORT).show() }
     }
