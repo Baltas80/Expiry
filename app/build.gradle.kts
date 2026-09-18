@@ -39,7 +39,11 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlin {\n        compilerOptions {\n            jvmTarget = JvmTarget.fromTarget("17")\n        }\n    }
+    kotlin {
+        compilerOptions {
+            jvmTarget = JvmTarget.fromTarget("17")
+        }
+    }
 
     // Release signing is enabled only when all credentials are supplied by the
     // CI environment. No signing material or passwords are stored in source.
