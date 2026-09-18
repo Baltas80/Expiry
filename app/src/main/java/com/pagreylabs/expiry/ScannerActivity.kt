@@ -22,6 +22,7 @@ import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
+import com.google.common.util.concurrent.ListenableFuture
 import java.util.concurrent.Executors
 
 @OptIn(ExperimentalGetImage::class)
@@ -73,7 +74,7 @@ class ScannerActivity : ComponentActivity() {
     }
 
     private fun startCamera() {
-        val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
+        val cameraProviderFuture: ListenableFuture<ProcessCameraProvider> = ProcessCameraProvider.getInstance(this)
         cameraProviderFuture.addListener({
             val provider = cameraProviderFuture.get()
             val preview = Preview.Builder().build().also { it.surfaceProvider = previewView.surfaceProvider }
