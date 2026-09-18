@@ -62,7 +62,7 @@ data class ExpiryCloudSnapshot(
             put("schemaVersion", schemaVersion)
             put("generatedAt", generatedAt)
             put("user", user.toJson())
-            put("products", JSONArray().apply { products.forEach { put(it.toJson()) } })
+            put("products", JSONArray().apply { for (product in products) put(product.toJson()) })
             put("scanHistory", JSONArray().apply {
                 scanHistory.forEach {
                     put(JSONObject().apply {
