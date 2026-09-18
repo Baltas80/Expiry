@@ -14,6 +14,10 @@ android {
         targetSdk = 35
         versionCode = 6
         versionName = "1.0.0"
+        manifestPlaceholders["ADMOB_APP_ID"] = ""
+        buildConfigField("Boolean", "ADS_ENABLED", "false")
+        buildConfigField("String", "ADMOB_APP_ID", "\"\"")
+        buildConfigField("String", "ADMOB_BANNER_UNIT_ID", "\"\"")
         // Italian is intentionally excluded because a transitive dependency ships
         // a malformed values-it resource that fails AAPT during resource merging.
         resourceConfigurations.addAll(setOf(
@@ -47,6 +51,22 @@ android {
         releaseKeyAlias,
         releaseKeyPassword
     ).all { !it.isNullOrBlank() }
+
+    buildTypes.getByName("debug") {
+        manifestPlaceholders["ADMOB_APP_ID"] = "ca-app-pub-3940256099942544~3347511713"
+        buildConfigField("Boolean", "ADS_ENABLED", "true")
+        buildConfigField("String", "ADMOB_APP_ID", "\"ca-app-pub-3940256099942544~3347511713\"")
+        buildConfigField("String", "ADMOB_BANNER_UNIT_ID", "\"ca-app-pub-3940256099942544/6300978111\"")
+    }
+
+    val releaseAdMobAppId = System.getenv("EXPIRY_ADMOB_APP_ID").orEmpty()
+    val releaseBannerUnitId = System.getenv("EXPIRY_ADMOB_BANNER_UNIT_ID").orEmpty()
+    buildTypes.getByName("release") {
+        manifestPlaceholders["ADMOB_APP_ID"] = releaseAdMobAppId
+        buildConfigField("Boolean", "ADS_ENABLED", (releaseAdMobAppId.isNotBlank() && releaseBannerUnitId.isNotBlank()).toString())
+        buildConfigField("String", "ADMOB_APP_ID", "\"$releaseAdMobAppId\"")
+        buildConfigField("String", "ADMOB_BANNER_UNIT_ID", "\"$releaseBannerUnitId\"")
+    }
 
     if (releaseSigningReady) {
         signingConfigs.create("production") {
@@ -85,6 +105,9 @@ dependencies {
     implementation("androidx.camera:camera-view:1.4.2")
     implementation("com.google.mlkit:barcode-scanning:17.3.0")
     implementation("io.coil-kt:coil-compose:2.7.0")
+    implementation("com.google.android.gms:play-services-ads:25.5.0")
+    implementation("com.google.android.ump:user-messaging-platform:4.0.0")
+    implementation("com.android.billingclient:billing-ktx:9.1.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
 
     testImplementation("junit:junit:4.13.2")
