@@ -12,9 +12,13 @@ class ExpiryRepository(context: Context) {
 
     fun all(): List<ExpiryItem> {
         val raw = prefs.getString("items", "[]") ?: "[]"
-        val array = JSONArray(raw)
+        val array = runCatching { JSONArray(raw) }.getOrElse { return emptyList() }
         return buildList {
-            for (i in 0 until array.length()) add(ExpiryItem.fromJson(array.getJSONObject(i)))
+            for (i in 0 until array.length()) {
+                runCatching { ExpiryItem.fromJson(array.getJSONObject(i)) }
+                    .getOrNull()
+                    ?.let(::add)
+            }
         }.sortedBy { it.expiryMillis }
     }
 
@@ -72,11 +76,13 @@ class ExpiryRepository(context: Context) {
 
     fun scanHistory(): List<ScanEvent> {
         val raw = prefs.getString("scan_history", "[]") ?: "[]"
-        val array = JSONArray(raw)
+        val array = runCatching { JSONArray(raw) }.getOrElse { return emptyList() }
         return buildList {
             for (i in 0 until array.length()) {
-                val o = array.getJSONObject(i)
-                add(ScanEvent(o.getString("barcode"), o.getLong("timestamp")))
+                runCatching {
+                    val o = array.getJSONObject(i)
+                    ScanEvent(o.getString("barcode"), o.getLong("timestamp"))
+                }.getOrNull()?.let(::add)
             }
         }
     }
@@ -101,16 +107,21 @@ class ExpiryRepository(context: Context) {
     fun outcomeHistory(): List<OutcomeEvent> {
         migrateLegacyOutcomeHistory()
         val raw = outcomePrefs.getString("history", "[]") ?: "[]"
-        val array = JSONArray(raw)
+        val array = runCatching { JSONArray(raw) }.getOrElse { return emptyList() }
         return buildList {
             for (i in 0 until array.length()) {
-                val o = array.getJSONObject(i)
-                add(OutcomeEvent(
-                    o.getLong("itemId"), o.optString("barcode"), o.optString("name", "Producto"),
-                    o.optString("category"),
-                    runCatching { OutcomeType.valueOf(o.optString("outcome")) }.getOrDefault(OutcomeType.CONSUMED),
-                    o.getLong("timestamp")
-                ))
+                runCatching {
+                    val o = array.getJSONObject(i)
+                    OutcomeEvent(
+                        o.getLong("itemId"),
+                        o.optString("barcode"),
+                        o.optString("name", "Producto"),
+                        o.optString("category"),
+                        runCatching { OutcomeType.valueOf(o.optString("outcome")) }
+                            .getOrDefault(OutcomeType.CONSUMED),
+                        o.getLong("timestamp")
+                    )
+                }.getOrNull()?.let(::add)
             }
         }
     }
