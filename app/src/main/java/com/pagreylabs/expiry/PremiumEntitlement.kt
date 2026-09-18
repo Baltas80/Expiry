@@ -1,21 +1,21 @@
 package com.pagreylabs.expiry
 
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 
 /** Process-wide Premium entitlement state; never exposed as a user-editable setting. */
 object PremiumEntitlement {
-    private val _isPremium = MutableStateFlow(false)
-    val isPremium: StateFlow<Boolean> = _isPremium.asStateFlow()
+    var isPremium by mutableStateOf(false)
+        private set
 
     fun restoreCached(context: android.content.Context) {
-        _isPremium.value = context.getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE)
+        isPremium = context.getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE)
             .getBoolean(PREFS_PREMIUM, false)
     }
 
     internal fun setActive(context: android.content.Context, active: Boolean) {
-        _isPremium.value = active
+        isPremium = active
         context.getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE)
             .edit().putBoolean(PREFS_PREMIUM, active).apply()
     }
