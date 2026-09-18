@@ -41,6 +41,7 @@ import java.util.*
 
 class MainActivity : ComponentActivity() {
     private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    private lateinit var premiumBilling: PremiumBillingManager
     private var scannedBarcode by mutableStateOf<String?>(null)
     private var scannedProductName by mutableStateOf("")
     private var scannedProductCategory by mutableStateOf("")
@@ -51,9 +52,28 @@ class MainActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
+        premiumBilling = PremiumBillingManager(this)
+        premiumBilling.start()
+        ExpiryAds.requestConsent(this)
         setContent {
-            ExpiryTheme { ExpiryApp(scannedBarcode, scannedProductName, scannedProductCategory, scannedProductImageUrl, ::launchBarcodeScanner) { clearScan() } }
+            ExpiryTheme {
+                ExpiryApp(
+                    scannedBarcode,
+                    scannedProductName,
+                    scannedProductCategory,
+                    scannedProductImageUrl,
+                    ::launchBarcodeScanner,
+                    { clearScan() },
+                    onBuyPremium = { premiumBilling.launchPurchase(this) { Toast.makeText(this, R.string.premium_unavailable, Toast.LENGTH_SHORT).show() } },
+                    onPrivacyOptions = { ExpiryAds.showPrivacyOptions(this) }
+                )
+            }
         }
+    }
+
+    override fun onDestroy() {
+        premiumBilling.close()
+        super.onDestroy()
     }
 
     private fun clearScan() {
@@ -97,10 +117,18 @@ private fun statusText(item: ExpiryItem, r: android.content.res.Resources): Stri
     ExpiryStatus.OK -> r.getString(R.string.ok_status)
 }
 private fun dateText(millis: Long): String = DateFormat.getDateInstance(DateFormat.SHORT, Locale.getDefault()).format(Date(millis))
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ExpiryApp(scannedBarcode: String?, scannedProductName: String, scannedProductCategory: String, scannedProductImageUrl: String, onScanBarcode: () -> Unit, onBarcodeConsumed: () -> Unit) {
+private fun ExpiryApp(
+    scannedBarcode: String?,
+    scannedProductName: String,
+    scannedProductCategory: String,
+    scannedProductImageUrl: String,
+    onScanBarcode: () -> Unit,
+    onBarcodeConsumed: () -> Unit,
+    onBuyPremium: () -> Unit,
+    onPrivacyOptions: () -> Unit
+) {
     val context = LocalContext.current
     val r = context.resources
     val repository = remember { ExpiryRepository(context.applicationContext) }
@@ -114,6 +142,7 @@ private fun ExpiryApp(scannedBarcode: String?, scannedProductName: String, scann
     var showSettings by remember { mutableStateOf(false) }
     var deleteTarget by remember { mutableStateOf<ExpiryItem?>(null) }
     var outcomeTarget by remember { mutableStateOf<ExpiryItem?>(null) }
+    val isPremium by PremiumEntitlement.isPremium.collectAsState()
 
     val filtered = remember(items, search, filter) {
         items.filter { item ->
@@ -136,12 +165,15 @@ private fun ExpiryApp(scannedBarcode: String?, scannedProductName: String, scann
             )
         },
         bottomBar = {
-            NavigationBar {
+            Column {
+                ExpiryAdBanner(isPremium = isPremium)
+                NavigationBar {
                 NavigationBarItem(selected = true, onClick = { filter = Filter.ALL }, icon = { Icon(Icons.Default.Home, null) }, label = { Text(stringResource(R.string.home), maxLines = 1) })
                 NavigationBarItem(selected = false, onClick = onScanBarcode, icon = { Icon(Icons.Default.QrCodeScanner, null) }, label = { Text(stringResource(R.string.scan_tab), maxLines = 1) })
                 NavigationBarItem(selected = false, onClick = { showAdd = true }, icon = { Icon(Icons.Default.Add, null) }, label = { Text(stringResource(R.string.add_tab), maxLines = 1) })
                 NavigationBarItem(selected = false, onClick = { showStats = true }, icon = { Icon(Icons.Default.BarChart, null) }, label = { Text(stringResource(R.string.stats_tab), maxLines = 1) })
                 NavigationBarItem(selected = false, onClick = { showSettings = true }, icon = { Icon(Icons.Default.MoreHoriz, null) }, label = { Text(stringResource(R.string.more_tab), maxLines = 1) })
+                }
             }
         },
         floatingActionButton = { FloatingActionButton(onClick = { showAdd = true }, containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary, shape = MaterialTheme.shapes.extraLarge) { Icon(Icons.Default.Add, stringResource(R.string.add_product), modifier = Modifier.size(30.dp)) } }
@@ -160,19 +192,28 @@ private fun ExpiryApp(scannedBarcode: String?, scannedProductName: String, scann
     deleteTarget?.let { item -> AlertDialog(onDismissRequest = { deleteTarget = null }, title = { Text(stringResource(R.string.delete_product)) }, text = { Text(stringResource(R.string.delete_confirm, item.name)) }, confirmButton = { Button({ cancelReminder(context, item.id); repository.delete(item.id); items = repository.all(); deleteTarget = null }) { Text(stringResource(R.string.delete_product)) } }, dismissButton = { TextButton({ deleteTarget = null }) { Text(stringResource(R.string.cancel)) } }) }
     outcomeTarget?.let { item -> AlertDialog(onDismissRequest = { outcomeTarget = null }, title = { Text(stringResource(R.string.record_result)) }, text = { Text(stringResource(R.string.what_happened, item.name)) }, confirmButton = { Button({ repository.recordOutcome(item, OutcomeType.CONSUMED); cancelReminder(context, item.id); repository.delete(item.id); items = repository.all(); outcomeTarget = null }) { Text(stringResource(R.string.consumed)) } }, dismissButton = { TextButton({ repository.recordOutcome(item, OutcomeType.DISCARDED); cancelReminder(context, item.id); repository.delete(item.id); items = repository.all(); outcomeTarget = null }) { Text(stringResource(R.string.discarded)) } }) }
     if (showStats) ConsumptionStatsDialog(items, repository.scanHistory(), repository.outcomeHistory()) { showStats = false }
-    if (showSettings) ExpirySettingsDialog(onDismiss = { showSettings = false })
+    if (showSettings) ExpirySettingsDialog(
+        onDismiss = { showSettings = false },
+        onBuyPremium = onBuyPremium,
+        onPrivacyOptions = onPrivacyOptions
+    )
     LaunchedEffect(scannedBarcode) { if (scannedBarcode != null && !showAdd && editing == null) showAdd = true }
 }
 
 @Composable private fun SummaryCard(count: Int, label: String, color: androidx.compose.ui.graphics.Color, modifier: Modifier = Modifier) { Card(modifier = modifier.heightIn(min = 92.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow), shape = MaterialTheme.shapes.medium) { Column(Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) { Text(count.toString(), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = color); Text(label, style = MaterialTheme.typography.labelSmall, maxLines = 2) } } }
 
 @Composable
-private fun ExpirySettingsDialog(onDismiss: () -> Unit) {
+private fun ExpirySettingsDialog(
+    onDismiss: () -> Unit,
+    onBuyPremium: () -> Unit,
+    onPrivacyOptions: () -> Unit
+) {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("expiry_settings", Context.MODE_PRIVATE) }
     val notificationsEnabled = if (Build.VERSION.SDK_INT >= 24) (context.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager).areNotificationsEnabled() else true
     var themeMode by remember { mutableStateOf(prefs.getString("theme_mode", "system") ?: "system") }
     var confirmClear by remember { mutableStateOf(false) }
+    val isPremium by PremiumEntitlement.isPremium.collectAsState()
     val exportLauncher = androidx.activity.compose.rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         if (uri != null) runCatching { context.contentResolver.openOutputStream(uri)?.use { it.write(exportExpiryBackup(context).toByteArray(Charsets.UTF_8)) } }.onFailure { Toast.makeText(context, R.string.data_operation_error, Toast.LENGTH_SHORT).show() }
     }
@@ -181,13 +222,25 @@ private fun ExpirySettingsDialog(onDismiss: () -> Unit) {
             if (importExpiryBackup(context, raw)) { Toast.makeText(context, R.string.data_imported, Toast.LENGTH_SHORT).show(); context.recreate() } else Toast.makeText(context, R.string.data_invalid, Toast.LENGTH_SHORT).show()
         }.onFailure { Toast.makeText(context, R.string.data_operation_error, Toast.LENGTH_SHORT).show() }
     }
-    AlertDialog(onDismissRequest = onDismiss, title = { Text(stringResource(R.string.settings), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold) }, text = { Column(Modifier.heightIn(max = 560.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(14.dp)) { SettingsSectionTitle(stringResource(R.string.settings_notifications_section)); Text(stringResource(R.string.settings_notifications, if (notificationsEnabled) stringResource(R.string.enabled) else stringResource(R.string.disabled)), style = MaterialTheme.typography.bodyMedium); FilledTonalButton(onClick = { if (Build.VERSION.SDK_INT >= 26) context.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply { putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName) }) }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.Notifications, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.settings_open_notifications)) }; SettingsSectionTitle(stringResource(R.string.settings_language_section)); Text(stringResource(R.string.settings_language_auto), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant); OutlinedButton(onClick = { if (Build.VERSION.SDK_INT >= 33) context.startActivity(Intent(Settings.ACTION_APP_LOCALE_SETTINGS).apply { data = Uri.parse("package:${context.packageName}") }) else context.startActivity(Intent(Settings.ACTION_LOCALE_SETTINGS)) }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.Language, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.settings_change_language)) }; SettingsSectionTitle(stringResource(R.string.settings_appearance_section)); Text(stringResource(R.string.settings_appearance_description), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant); Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { listOf("system" to R.string.theme_system, "light" to R.string.theme_light, "dark" to R.string.theme_dark).forEach { (mode, label) -> FilterChip(selected = themeMode == mode, onClick = { themeMode = mode; prefs.edit().putString("theme_mode", mode).apply(); context.recreate() }, label = { Text(stringResource(label)) }) } }; SettingsSectionTitle(stringResource(R.string.settings_data_section)); Text(stringResource(R.string.settings_storage), style = MaterialTheme.typography.bodyMedium); FilledTonalButton(onClick = { exportLauncher.launch("expiry-backup.json") }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.FileDownload, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.data_export)) }; OutlinedButton(onClick = { importLauncher.launch(arrayOf("application/json", "text/json", "text/plain")) }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.FileUpload, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.data_import)) }; OutlinedButton(onClick = { confirmClear = true }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)) { Icon(Icons.Default.DeleteSweep, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.data_clear)) }; SettingsSectionTitle(stringResource(R.string.settings_privacy_section)); Text(stringResource(R.string.settings_privacy_description), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant); SettingsSectionTitle(stringResource(R.string.settings_about_section)); Text(stringResource(R.string.settings_version, BuildConfig.VERSION_NAME), style = MaterialTheme.typography.bodyMedium); Text(stringResource(R.string.settings_about_description), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) } }, confirmButton = { TextButton(onDismiss) { Text(stringResource(R.string.close)) } })
+    AlertDialog(onDismissRequest = onDismiss, title = { Text(stringResource(R.string.settings), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold) }, text = { Column(Modifier.heightIn(max = 560.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(14.dp)) { SettingsSectionTitle(stringResource(R.string.settings_notifications_section)); Text(stringResource(R.string.settings_notifications, if (notificationsEnabled) stringResource(R.string.enabled) else stringResource(R.string.disabled)), style = MaterialTheme.typography.bodyMedium); FilledTonalButton(onClick = { if (Build.VERSION.SDK_INT >= 26) context.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply { putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName) }) }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.Notifications, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.settings_open_notifications)) }; SettingsSectionTitle(stringResource(R.string.settings_language_section)); Text(stringResource(R.string.settings_language_auto), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant); OutlinedButton(onClick = { if (Build.VERSION.SDK_INT >= 33) context.startActivity(Intent(Settings.ACTION_APP_LOCALE_SETTINGS).apply { data = Uri.parse("package:${context.packageName}") }) else context.startActivity(Intent(Settings.ACTION_LOCALE_SETTINGS)) }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.Language, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.settings_change_language)) }; SettingsSectionTitle(stringResource(R.string.settings_appearance_section)); Text(stringResource(R.string.settings_appearance_description), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant); Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { listOf("system" to R.string.theme_system, "light" to R.string.theme_light, "dark" to R.string.theme_dark).forEach { (mode, label) -> FilterChip(selected = themeMode == mode, onClick = { themeMode = mode; prefs.edit().putString("theme_mode", mode).apply(); context.recreate() }, label = { Text(stringResource(label)) }) } }; SettingsSectionTitle(stringResource(R.string.settings_premium_section)); Text(
+            if (isPremium) stringResource(R.string.premium_active) else stringResource(R.string.premium_description),
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (isPremium) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+        ); if (!isPremium) Button(
+            onClick = onBuyPremium,
+            modifier = Modifier.fillMaxWidth()
+        ) { Icon(Icons.Default.Star, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.premium_upgrade)) }
+        if (BuildConfig.ADS_ENABLED && !BuildConfig.DEBUG) OutlinedButton(
+            onClick = onPrivacyOptions,
+            modifier = Modifier.fillMaxWidth()
+        ) { Icon(Icons.Default.PrivacyTip, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.privacy_ad_options)) };
+        SettingsSectionTitle(stringResource(R.string.settings_data_section)); Text(stringResource(R.string.settings_storage), style = MaterialTheme.typography.bodyMedium); FilledTonalButton(onClick = { exportLauncher.launch("expiry-backup.json") }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.FileDownload, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.data_export)) }; OutlinedButton(onClick = { importLauncher.launch(arrayOf("application/json", "text/json", "text/plain")) }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.FileUpload, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.data_import)) }; OutlinedButton(onClick = { confirmClear = true }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)) { Icon(Icons.Default.DeleteSweep, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.data_clear)) }; SettingsSectionTitle(stringResource(R.string.settings_privacy_section)); Text(stringResource(R.string.settings_privacy_description), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant); SettingsSectionTitle(stringResource(R.string.settings_about_section)); Text(stringResource(R.string.settings_version, BuildConfig.VERSION_NAME), style = MaterialTheme.typography.bodyMedium); Text(stringResource(R.string.settings_about_description), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) } }, confirmButton = { TextButton(onDismiss) { Text(stringResource(R.string.close)) } })
     if (confirmClear) AlertDialog(onDismissRequest = { confirmClear = false }, title = { Text(stringResource(R.string.data_clear)) }, text = { Text(stringResource(R.string.data_clear_confirm)) }, confirmButton = { Button(onClick = { clearExpiryData(context); confirmClear = false; context.recreate() }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) { Text(stringResource(R.string.data_clear_confirm_action)) } }, dismissButton = { TextButton({ confirmClear = false }) { Text(stringResource(R.string.cancel)) } })
 }
 
 @Composable private fun SettingsSectionTitle(text: String) { Text(text, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary) }
 
-@Composable private fun ExpiryCard(item: ExpiryItem, onEdit: () -> Unit, onDelete: () -> Unit, onOutcome: () -> Unit, r: android.content.res.Resources) { Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow), elevation = CardDefaults.cardElevation(defaultElevation = 1.dp), shape = MaterialTheme.shapes.large) { Column(Modifier.fillMaxWidth().padding(12.dp)) { Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) { ProductThumbnail(item); Spacer(Modifier.width(14.dp)); Column(Modifier.weight(1f).padding(top = 2.dp)) { Text(item.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium, maxLines = 2); if (item.category.isNotBlank()) Text(item.category, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1); Spacer(Modifier.height(8.dp)); Row(verticalAlignment = Alignment.CenterVertically) { StatusDot(status(item)); Spacer(Modifier.width(7.dp)); Text(statusText(item, r), style = MaterialTheme.typography.labelLarge, color = statusColor(item), fontWeight = FontWeight.SemiBold) }; Spacer(Modifier.height(4.dp)); Text(r.getString(R.string.expiry_date, dateText(item.expiryMillis)), style = MaterialTheme.typography.bodySmall); Text(r.getString(R.string.notice, item.reminderDays), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }; IconButton(onEdit, modifier = Modifier.size(40.dp)) { Icon(Icons.Default.Edit, stringResource(R.string.edit_product)) }; IconButton(onDelete, modifier = Modifier.size(40.dp)) { Icon(Icons.Default.Delete, stringResource(R.string.delete_product)) } }; Spacer(Modifier.height(10.dp)); OutlinedButton(onClick = onOutcome, modifier = Modifier.fillMaxWidth().height(44.dp), contentPadding = PaddingValues(horizontal = 12.dp)) { Icon(Icons.Default.Restaurant, null, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(7.dp)); Text(stringResource(R.string.record_consumption_waste), style = MaterialTheme.typography.labelLarge) } } } }
+@Composable private fun ExpiryCard(item: ExpiryItem, onEdit: () -> Unit, onDelete: () -> Unit, onOutcome: () -> Unit, r: android.content.res.Resources) { Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow), elevation = CardDefaults.cardElevation(defaultElevation = 1.dp), shape = MaterialTheme.shapes.large) { Column(Modifier.fillMaxWidth().padding(12.dp)) { Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) { ProductThumbnail(item); Spacer(Modifier.width(14.dp)); Column(Modifier.weight(1f).padding(top = 2.dp)) { Text(item.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium, maxLines = 2); if (item.category.isNotBlank()) Text(item.category, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1); Spacer(Modifier.height(8.dp)); Row(verticalAlignment = Alignment.CenterVertically) { StatusDot(status(item)); Spacer(Modifier.width(7.dp)); Text(statusText(item, r), style = MaterialTheme.typography.labelLarge, color = statusColor(item), fontWeight = FontWeight.SemiBold) }; Spacer(Modifier.height(4.dp)); Text(r.getString(R.string.expiry_date, dateText(item.expiryMillis)), style = MaterialTheme.typography.bodySmall); Text(r.getString(R.string.notice, item.reminderDays), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }; IconButton(onEdit, modifier = Modifier.size(48.dp)) { Icon(Icons.Default.Edit, stringResource(R.string.edit_product)) }; IconButton(onDelete, modifier = Modifier.size(48.dp)) { Icon(Icons.Default.Delete, stringResource(R.string.delete_product)) } }; Spacer(Modifier.height(10.dp)); OutlinedButton(onClick = onOutcome, modifier = Modifier.fillMaxWidth().height(44.dp), contentPadding = PaddingValues(horizontal = 12.dp)) { Icon(Icons.Default.Restaurant, null, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(7.dp)); Text(stringResource(R.string.record_consumption_waste), style = MaterialTheme.typography.labelLarge) } } } }
 
 @Composable private fun StatusDot(itemStatus: ExpiryStatus) { Surface(modifier = Modifier.size(10.dp), shape = MaterialTheme.shapes.extraLarge, color = when (itemStatus) { ExpiryStatus.EXPIRED, ExpiryStatus.TODAY -> MaterialTheme.colorScheme.error; ExpiryStatus.SOON -> MaterialTheme.colorScheme.tertiary; ExpiryStatus.OK -> MaterialTheme.colorScheme.primary }) {} }
 
