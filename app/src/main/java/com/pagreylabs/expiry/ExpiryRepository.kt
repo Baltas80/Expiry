@@ -36,14 +36,14 @@ class ExpiryRepository(context: Context) {
         )
         val items = all().filterNot { it.id == normalized.id } + normalized
         val array = JSONArray()
-        items.forEach { array.put(it.toJson()) }
+        for (item in items) array.put(item.toJson())
         prefs.edit().putString("items", array.toString()).apply()
         rememberProduct(normalized.barcode, normalized.name, normalized.category)
     }
 
     fun delete(id: Long) {
         val array = JSONArray()
-        all().filterNot { it.id == id }.forEach { array.put(it.toJson()) }
+        for (item in all().filterNot { it.id == id }) array.put(item.toJson())
         prefs.edit().putString("items", array.toString()).apply()
     }
 

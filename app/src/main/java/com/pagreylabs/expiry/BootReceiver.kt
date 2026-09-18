@@ -23,7 +23,7 @@ class BootReceiver : BroadcastReceiver() {
         val now = System.currentTimeMillis()
         val alarm = appContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
-        repository.all().forEach { item ->
+        for (item in repository.all()) {
             val pendingIntent = reminderPendingIntent(appContext, item.id)
             alarm.cancel(pendingIntent)
 
