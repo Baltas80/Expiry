@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId = "com.pagreylabs.expiry"
-        minSdk = 23
+        minSdk = 24
         targetSdk = 35
         versionCode = 6
         versionName = "1.0.0"
