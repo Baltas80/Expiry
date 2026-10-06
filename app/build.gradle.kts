@@ -1,12 +1,11 @@
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
 android {
     namespace = "com.pagreylabs.expiry"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.pagreylabs.expiry"
@@ -33,7 +32,6 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions { jvmTarget = "17" }
 
     val releaseKeystorePath = System.getenv("EXPIRY_KEYSTORE_PATH")
     val releaseStorePassword = System.getenv("EXPIRY_KEYSTORE_PASSWORD")
