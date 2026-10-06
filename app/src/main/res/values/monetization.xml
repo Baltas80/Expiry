@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Filled with the real AdMob App ID before the monetized release. Empty keeps ads disabled. -->
+    <string name="admob_app_id" translatable="false"></string>
+    <!-- Filled with the real AdMob banner unit ID before the monetized release. -->
+    <string name="admob_banner_ad_unit_id" translatable="false"></string>
+
+    <string name="premium_no_ads_title">Expiry Premium</string>
+    <string name="premium_no_ads_description">Sin anuncios y con una experiencia más limpia.</string>
+    <string name="premium_no_ads_buy">Activar Premium</string>
+    <string name="premium_no_ads_active">Premium activo · Sin anuncios</string>
+    <string name="premium_no_ads_unavailable">Premium estará disponible cuando la suscripción esté publicada en Google Play.</string>
+    <string name="premium_no_ads_manage">Gestionar suscripción</string>
+</resources>
