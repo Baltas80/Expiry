@@ -35,8 +35,6 @@ android {
     }
     kotlinOptions { jvmTarget = "17" }
 
-    // Release signing is enabled only when all credentials are supplied by the
-    // CI environment. No signing material or passwords are stored in source.
     val releaseKeystorePath = System.getenv("EXPIRY_KEYSTORE_PATH")
     val releaseStorePassword = System.getenv("EXPIRY_KEYSTORE_PASSWORD")
     val releaseKeyAlias = System.getenv("EXPIRY_KEY_ALIAS")
@@ -64,8 +62,6 @@ android {
 configurations.configureEach {
     resolutionStrategy.eachDependency {
         if (requested.group == "com.google.android.gms" && requested.name == "play-services-mlkit-barcode-scanning") {
-            // 18.3.1 ships a malformed locale resource. 18.2.0 exposes the same
-            // barcode scanning API used here without that resource defect.
             useVersion("18.2.0")
             because("Keep AAPT-safe barcode scanning resources while retaining BarcodeScanning API")
         }
@@ -85,6 +81,15 @@ dependencies {
     implementation("androidx.camera:camera-view:1.4.2")
     implementation("com.google.mlkit:barcode-scanning:17.3.0")
     implementation("io.coil-kt:coil-compose:2.7.0")
+
+    // Monetization foundation for the next release:
+    // - AdMob 25.5.0 for the free/ad-supported tier.
+    // - UMP 4.0.0 for consent and privacy choices.
+    // - Play Billing 9.1.0 for the Premium no-ads subscription.
+    implementation("com.google.android.gms:play-services-ads:25.5.0")
+    implementation("com.google.android.ump:user-messaging-platform:4.0.0")
+    implementation("com.android.billingclient:billing-ktx:9.1.0")
+
     debugImplementation("androidx.compose.ui:ui-tooling")
 
     testImplementation("junit:junit:4.13.2")
