@@ -37,6 +37,27 @@ El workflow reconstruye el archivo en `$RUNNER_TEMP/expiry-upload-key.jks` y Gra
 - [x] Verificación criptográfica de que el AAB generado está firmado.
 - [x] Conservación segura de la clave de firma.
 
+## Monetización — próxima actualización
+
+- [x] Dependencia Google Play Billing 9.1.0.
+- [x] Producto de suscripción definido: `premium_no_ads`.
+- [x] Base plans definidos: `monthly` y `annual`.
+- [x] Entitlement Premium consultado desde compras activas de Google Play.
+- [x] Compras Premium no reconocidas se reconocen tras confirmación de compra.
+- [x] Publicidad condicionada al entitlement Premium.
+- [x] UMP 4.0.0 integrado para consentimiento antes de solicitar anuncios.
+- [x] AdMob configurado para permanecer inactivo mientras no existan IDs reales.
+- [ ] Crear en Play Console la suscripción `premium_no_ads` y sus base plans.
+- [ ] Registrar Expiry en AdMob y obtener App ID.
+- [ ] Crear unidad de banner y obtener Ad Unit ID.
+- [ ] Completar el mensaje de consentimiento en AdMob Privacy & Messaging.
+- [ ] Introducir los IDs reales en `app/src/main/res/values/monetization.xml`.
+- [ ] Probar compra mensual, anual, renovación, cancelación y recuperación de entitlement.
+- [ ] Probar que Premium elimina completamente el banner.
+- [ ] Probar consentimiento EEE/UK y acceso a opciones de privacidad.
+- [ ] Generar nueva versión con `versionCode > 10` y verificar AAB antes de publicar.
+
+
 ## Google Play
 
 - [ ] Crear/confirmar la aplicación en Play Console.
