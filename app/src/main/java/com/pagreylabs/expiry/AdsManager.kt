@@ -70,7 +70,7 @@ fun ExpiryBannerAd(
             setAdSize(
                 AdSize.getLargeAnchoredAdaptiveBannerAdSize(
                     context,
-                    context.resources.displayMetrics.widthPixels
+                    (context.resources.displayMetrics.widthPixels / context.resources.displayMetrics.density).toInt()
                 )
             )
             loadAd(AdRequest.Builder().build())
