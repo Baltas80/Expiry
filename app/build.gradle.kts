@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "com.pagreylabs.expiry"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.pagreylabs.expiry"
         minSdk = 24
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 9
         versionName = "1.0.3"
         // Italian is intentionally excluded because a transitive dependency ships
