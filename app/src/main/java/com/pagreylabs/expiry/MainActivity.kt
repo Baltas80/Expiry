@@ -54,7 +54,7 @@ class MainActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
-        AdsManager(this).requestConsentAndInitialize { ready -> adsReady = ready }
+        AdsManager(this).requestConsentAndInitialize(this) { ready -> adsReady = ready }
         setContent {
             ExpiryTheme { ExpiryApp(scannedBarcode, scannedProductName, scannedProductCategory, scannedProductImageUrl, adsReady, ::launchBarcodeScanner) { clearScan() } }
         }
