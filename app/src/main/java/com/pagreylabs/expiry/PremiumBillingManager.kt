@@ -5,6 +5,7 @@ import android.content.Context
 import com.android.billingclient.api.AcknowledgePurchaseParams
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClient.ProductType
+import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingFlowParams
 import com.android.billingclient.api.BillingResult
 import com.android.billingclient.api.ProductDetails
@@ -62,7 +63,7 @@ class PremiumBillingManager(context: Context) : AutoCloseable {
             refresh()
             return
         }
-        billingClient.startConnection(object : BillingClient.BillingClientStateListener {
+        billingClient.startConnection(object : BillingClientStateListener {
             override fun onBillingSetupFinished(result: BillingResult) {
                 if (result.responseCode == BillingClient.BillingResponseCode.OK) refresh()
             }
