@@ -47,14 +47,16 @@ class MainActivity : ComponentActivity() {
     private var scannedProductName by mutableStateOf("")
     private var scannedProductCategory by mutableStateOf("")
     private var scannedProductImageUrl by mutableStateOf("")
+    private var adsReady by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
+        AdsManager(this).requestConsentAndInitialize { ready -> adsReady = ready }
         setContent {
-            ExpiryTheme { ExpiryApp(scannedBarcode, scannedProductName, scannedProductCategory, scannedProductImageUrl, ::launchBarcodeScanner) { clearScan() } }
+            ExpiryTheme { ExpiryApp(scannedBarcode, scannedProductName, scannedProductCategory, scannedProductImageUrl, adsReady, ::launchBarcodeScanner) { clearScan() } }
         }
     }
 
@@ -102,7 +104,7 @@ private fun dateText(millis: Long): String = DateFormat.getDateInstance(DateForm
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ExpiryApp(scannedBarcode: String?, scannedProductName: String, scannedProductCategory: String, scannedProductImageUrl: String, onScanBarcode: () -> Unit, onBarcodeConsumed: () -> Unit) {
+private fun ExpiryApp(scannedBarcode: String?, scannedProductName: String, scannedProductCategory: String, scannedProductImageUrl: String, adsReady: Boolean, onScanBarcode: () -> Unit, onBarcodeConsumed: () -> Unit) {
     val context = LocalContext.current
     val r = context.resources
     val repository = remember { ExpiryRepository(context.applicationContext) }
@@ -146,7 +148,7 @@ private fun ExpiryApp(scannedBarcode: String?, scannedProductName: String, scann
         },
         bottomBar = {
             Column {
-                ExpiryBannerAd(visible = !isPremium)
+                ExpiryBannerAd(visible = adsReady && !isPremium)
                 NavigationBar {
                 NavigationBarItem(selected = true, onClick = { filter = Filter.ALL }, icon = { Icon(Icons.Default.Home, null) }, label = { Text(stringResource(R.string.home), maxLines = 1) })
                 NavigationBarItem(selected = false, onClick = onScanBarcode, icon = { Icon(Icons.Default.QrCodeScanner, null) }, label = { Text(stringResource(R.string.scan_tab), maxLines = 1) })
