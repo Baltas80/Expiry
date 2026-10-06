@@ -9,6 +9,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
@@ -65,19 +67,16 @@ fun ExpiryBannerAd(
     if (!visible) return
 
     val context = androidx.compose.ui.platform.LocalContext.current
-    val appIdConfigured = context.getString(R.string.admob_app_id).isNotBlank()
-    val adUnitConfigured = context.getString(R.string.admob_banner_ad_unit_id).isNotBlank()
+    val configuration = LocalConfiguration.current
+    val adUnitId = stringResource(R.string.admob_banner_ad_unit_id)
+    val appIdConfigured = stringResource(R.string.admob_app_id).isNotBlank()
+    val adUnitConfigured = adUnitId.isNotBlank()
     if (!appIdConfigured || !adUnitConfigured) return
 
-    val adView = remember {
+    val adView = remember(adUnitId, configuration.screenWidthDp) {
         AdView(context).apply {
-            adUnitId = context.getString(R.string.admob_banner_ad_unit_id)
-            setAdSize(
-                AdSize.getLargeAnchoredAdaptiveBannerAdSize(
-                    context,
-                    (context.resources.displayMetrics.widthPixels / context.resources.displayMetrics.density).toInt()
-                )
-            )
+            this.adUnitId = adUnitId
+            setAdSize(AdSize.getLargeAnchoredAdaptiveBannerAdSize(context, configuration.screenWidthDp))
             loadAd(AdRequest.Builder().build())
         }
     }
