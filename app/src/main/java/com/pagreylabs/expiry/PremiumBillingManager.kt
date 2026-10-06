@@ -49,6 +49,7 @@ class PremiumBillingManager(context: Context) : AutoCloseable {
                 processPurchases(purchases)
             }
         }
+        .enableAutoServiceReconnection()
         .enablePendingPurchases(
             com.android.billingclient.api.PendingPurchasesParams.newBuilder()
                 .enableOneTimeProducts()
