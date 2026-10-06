@@ -5,10 +5,10 @@
     <!-- Filled with the real AdMob banner unit ID before the monetized release. -->
     <string name="admob_banner_ad_unit_id" translatable="false"></string>
 
-    <string name="premium_no_ads_title">Expiry Premium</string>
-    <string name="premium_no_ads_description">Sin anuncios y con una experiencia más limpia.</string>
-    <string name="premium_no_ads_buy">Activar Premium</string>
-    <string name="premium_no_ads_active">Premium activo · Sin anuncios</string>
-    <string name="premium_no_ads_unavailable">Premium estará disponible cuando la suscripción esté publicada en Google Play.</string>
-    <string name="premium_no_ads_manage">Gestionar suscripción</string>
+    <string name="premium_no_ads_title" translatable="false">Expiry Premium</string>
+    <string name="premium_no_ads_description" translatable="false">Sin anuncios y con una experiencia más limpia.</string>
+    <string name="premium_no_ads_buy" translatable="false">Activar Premium</string>
+    <string name="premium_no_ads_active" translatable="false">Premium activo · Sin anuncios</string>
+    <string name="premium_no_ads_unavailable" translatable="false">Premium estará disponible cuando la suscripción esté publicada en Google Play.</string>
+    <string name="premium_no_ads_manage" translatable="false">Gestionar suscripción</string>
 </resources>
