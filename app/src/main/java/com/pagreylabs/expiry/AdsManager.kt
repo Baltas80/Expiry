@@ -50,6 +50,11 @@ class AdsManager(private val context: Context) {
             }
         )
     }
+
+    fun showPrivacyOptions(activity: Activity) {
+        if (context.getString(R.string.admob_app_id).isBlank()) return
+        UserMessagingPlatform.showPrivacyOptionsForm(activity) { }
+    }
 }
 
 @Composable
