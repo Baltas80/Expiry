@@ -36,6 +36,8 @@ jobs:
           EXPIRY_KEYSTORE_PASSWORD: ${{ secrets.EXPIRY_KEYSTORE_PASSWORD }}
           EXPIRY_KEY_ALIAS: ${{ secrets.EXPIRY_KEY_ALIAS }}
           EXPIRY_KEY_PASSWORD: ${{ secrets.EXPIRY_KEY_PASSWORD }}
+          EXPIRY_ADMOB_APP_ID: ${{ secrets.EXPIRY_ADMOB_APP_ID }}
+          EXPIRY_ADMOB_ANDROID_BANNER_ID: ${{ secrets.EXPIRY_ADMOB_ANDROID_BANNER_ID }}
         run: gradle bundleRelease
       - name: Verify release bundle signature
         run: |
