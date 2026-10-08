@@ -64,7 +64,13 @@ class ExpiryRepository(context: Context) {
             brand = product.brand,
             kind = product.kind,
             imageUrl = product.imageUrl,
-            sourceId = product.sourceId
+            ingredients = product.ingredients,
+            activeIngredients = product.activeIngredients,
+            manufacturer = product.manufacturer,
+            dosageForm = product.dosageForm,
+            quantity = product.quantity,
+            sourceId = product.sourceId,
+            externalIds = product.externalIds
         )
         prefs.edit().putString("product_catalog", catalog.toJson()).apply()
     }
@@ -216,7 +222,13 @@ data class CatalogProduct(
     val brand: String = "",
     val kind: ProductKind = ProductKind.UNKNOWN,
     val imageUrl: String = "",
-    val sourceId: String = ""
+    val ingredients: String = "",
+    val activeIngredients: String = "",
+    val manufacturer: String = "",
+    val dosageForm: String = "",
+    val quantity: String = "",
+    val sourceId: String = "",
+    val externalIds: Map<String, String> = emptyMap()
 )
 
 data class ScanEvent(val barcode: String, val timestamp: Long)
