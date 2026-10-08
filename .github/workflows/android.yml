@@ -1,8 +1,11 @@
 name: Android build
+# Product data branch validation
 
 on:
   push:
-    branches: [ master ]
+    branches:
+      - master
+      - feature/product-data-multiplex
   pull_request:
     branches: [ master ]
 
