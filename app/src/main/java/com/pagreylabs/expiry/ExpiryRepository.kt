@@ -38,7 +38,24 @@ class ExpiryRepository(context: Context) {
         val array = JSONArray()
         items.forEach { array.put(it.toJson()) }
         prefs.edit().putString("items", array.toString()).apply()
-        rememberProduct(normalized.barcode, normalized.name, normalized.category)
+        if (normalized.name.isNotBlank()) {
+            rememberProduct(
+                barcode = normalized.barcode,
+                name = normalized.name,
+                category = normalized.category,
+                brand = normalized.brand,
+                manufacturer = normalized.manufacturer,
+                imageUrl = normalized.imageUrl,
+                productType = normalized.productType,
+                ingredients = normalized.ingredients,
+                activeIngredients = normalized.activeIngredients,
+                sourceId = normalized.sourceId,
+                sourceName = normalized.sourceName,
+                confidence = normalized.sourceConfidence,
+                nationalCode = normalized.nationalCode,
+                registrationNumber = normalized.registrationNumber
+            )
+        }
     }
 
     fun delete(id: Long) {
@@ -151,7 +168,22 @@ class ExpiryRepository(context: Context) {
         })
         while (array.length() > MAX_OUTCOME_HISTORY) array.remove(0)
         outcomePrefs.edit().putString("history", array.toString()).apply()
-        rememberProduct(item.barcode, item.name, item.category)
+        rememberProduct(
+            barcode = item.barcode,
+            name = item.name,
+            category = item.category,
+            brand = item.brand,
+            manufacturer = item.manufacturer,
+            imageUrl = item.imageUrl,
+            productType = item.productType,
+            ingredients = item.ingredients,
+            activeIngredients = item.activeIngredients,
+            sourceId = item.sourceId,
+            sourceName = item.sourceName,
+            confidence = item.sourceConfidence,
+            nationalCode = item.nationalCode,
+            registrationNumber = item.registrationNumber
+        )
     }
 
     fun outcomeHistory(): List<OutcomeEvent> {
