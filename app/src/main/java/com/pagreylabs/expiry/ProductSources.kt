@@ -192,13 +192,13 @@ object ProductSources {
         }
     }
 
-    private fun mergeAll(results: List<ProductData>): ProductData? {
+    internal fun mergeAll(results: List<ProductData>): ProductData? {
         if (results.isEmpty()) return null
 
         val ordered = results.sortedWith(
-            compareByDescending<ProductData> { completeness(it) }
+            compareByDescending<ProductData> { sourcePriority(it.sourceId) }
                 .thenByDescending { it.confidence }
-                .thenByDescending { sourcePriority(it.sourceId) }
+                .thenByDescending { completeness(it) }
         )
 
         var merged = ordered.first()
