@@ -81,10 +81,11 @@ Consulta la [Política de Privacidad de Expiry](PRIVACY_POLICY.md).
 
 ## Monetización preparada para la próxima actualización
 
-La arquitectura de monetización queda preparada para dos niveles:
+Expiry ofrece tres opciones comerciales:
 
 - **Gratis**: versión con publicidad mediante Google Mobile Ads/AdMob, con consentimiento gestionado mediante UMP.
-- **Expiry Premium**: suscripción de Google Play que elimina la publicidad.
+- **Expiry Premium mensual/anual**: suscripción de Google Play que elimina la publicidad mientras esté activa.
+- **Expiry Premium de por vida**: producto único no consumible de Google Play que elimina la publicidad mediante un único pago.
 
 ### Identificadores de Google Play
 
@@ -95,6 +96,10 @@ Crear en Play Console una suscripción con:
 - Base plan anual: `annual`
 
 La aplicación consulta las ofertas disponibles directamente desde Google Play y utiliza el precio localizado que devuelve Play. No se deben introducir precios fijos en el código.
+
+### Premium de por vida
+
+Crear en Play Console un producto único no consumible con Product ID `premium_lifetime`. La aplicación consulta este producto como `INAPP` y combina su entitlement con el de la suscripción: cualquiera de los dos productos adquiridos mantiene Premium activo.
 
 ### AdMob
 
