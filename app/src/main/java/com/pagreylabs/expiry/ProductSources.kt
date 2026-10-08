@@ -112,12 +112,19 @@ object ProductSources {
         val product = ExpiryRepository(context.applicationContext).findProductByBarcode(barcode) ?: return null
         return ProductData(
             barcode = barcode,
-            productType = ProductType.UNKNOWN,
+            productType = product.productType.toProductType(),
             name = product.name,
+            brand = product.brand,
+            manufacturer = product.manufacturer,
             category = product.category,
-            sourceId = "local",
-            sourceName = "Expiry local catalog",
-            confidence = 0.95
+            imageUrl = product.imageUrl,
+            ingredients = product.ingredients,
+            activeIngredients = product.activeIngredients,
+            nationalCode = product.nationalCode,
+            registrationNumber = product.registrationNumber,
+            sourceId = product.sourceId.ifBlank { "local" },
+            sourceName = product.sourceName.ifBlank { "Expiry local catalog" },
+            confidence = maxOf(0.95, product.confidence)
         )
     }
 
@@ -387,6 +394,9 @@ object ProductSources {
             barcode = firstNonBlank(barcode, other.barcode)
         )
     }
+
+    private fun String.toProductType(): ProductType =
+        runCatching { ProductType.valueOf(this) }.getOrDefault(ProductType.UNKNOWN)
 
     private fun firstNonBlank(vararg values: String): String =
         values.asSequence().map(String::trim).firstOrNull(String::isNotBlank).orEmpty()
