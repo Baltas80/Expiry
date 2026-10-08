@@ -31,13 +31,21 @@ object ProductLookup {
     )
 
     fun lookup(barcode: String, callback: (Result?) -> Unit) {
-        val normalized = barcodeCandidates(barcode).firstOrNull() ?: return callback(null)
+        val candidates = barcodeCandidates(barcode)
+        val primary = candidates.firstOrNull() ?: return callback(null)
         Executors.newSingleThreadExecutor().execute {
             val result = runCatching {
-                ProductSources.local(ExpiryApplication.appContext, normalized)
-                    ?: ProductSources.lookupRemote(normalized)
+                candidates.asSequence()
+                    .mapNotNull { ProductSources.local(ExpiryApplication.appContext, it) }
+                    .firstOrNull()
+                    ?: ProductSources.lookupRemote(primary)
             }.getOrNull()
 
+            if (result != null) {
+                runCatching {
+                    ExpiryRepository(ExpiryApplication.appContext).rememberProduct(result)
+                }
+            }
             callback(result?.toResult())
         }
     }
