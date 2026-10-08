@@ -111,10 +111,7 @@ fun ExpiryTheme(
 
     val window = (context as? ComponentActivity)?.window
     if (window != null) {
-        window.statusBarColor = if (resolvedDark) ExpiryInk.toArgbCompat()
-        else ExpiryBackground.toArgbCompat()
-        window.navigationBarColor = if (resolvedDark) ExpiryInk.toArgbCompat()
-        else ExpirySurface.toArgbCompat()
+        WindowCompat.enableEdgeToEdge(window)
 
         val controller = WindowCompat.getInsetsController(window, window.decorView)
         controller.isAppearanceLightStatusBars = !resolvedDark
@@ -132,9 +129,3 @@ fun ExpiryTheme(
     )
 }
 
-private fun Color.toArgbCompat(): Int = android.graphics.Color.argb(
-    (alpha * 255f).toInt().coerceIn(0, 255),
-    (red * 255f).toInt().coerceIn(0, 255),
-    (green * 255f).toInt().coerceIn(0, 255),
-    (blue * 255f).toInt().coerceIn(0, 255)
-)
