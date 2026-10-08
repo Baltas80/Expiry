@@ -41,13 +41,15 @@ El workflow reconstruye el archivo en `$RUNNER_TEMP/expiry-upload-key.jks` y Gra
 
 - [x] Dependencia Google Play Billing 9.1.0.
 - [x] Producto de suscripción definido: `premium_no_ads`.
+- [x] Producto único no consumible definido: `premium_lifetime`.
 - [x] Base plans definidos: `monthly` y `annual`.
-- [x] Entitlement Premium consultado desde compras activas de Google Play.
-- [x] Compras Premium no reconocidas se reconocen tras confirmación de compra.
+- [x] Entitlement Premium consultado desde compras activas de Google Play para suscripciones y producto único.
+- [x] Compras Premium no reconocidas se reconocen tras confirmación de compra, tanto en suscripciones como en producto único.
 - [x] Publicidad condicionada al entitlement Premium.
 - [x] UMP 4.0.0 integrado para consentimiento antes de solicitar anuncios.
 - [x] AdMob configurado para permanecer inactivo mientras no existan IDs reales.
 - [ ] Crear en Play Console la suscripción `premium_no_ads` y sus base plans.
+- [ ] Crear en Play Console el producto único no consumible `premium_lifetime`.
 - [ ] Registrar Expiry en AdMob y obtener App ID.
 - [ ] Crear unidad de banner y obtener Ad Unit ID.
 - [ ] Completar el mensaje de consentimiento en AdMob Privacy & Messaging.
