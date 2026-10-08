@@ -2,16 +2,16 @@
 <resources>
     <string name="app_name">Expiry</string>
     <string name="tagline">Organiza hoy, aprovecha mañana</string>
-    <string name="hero_title">Aprovecha tus alimentos</string>
-    <string name="hero_subtitle">Controla lo que caduca y recibe avisos a tiempo.</string>
-    <string name="quick_actions">Acciones rápidas</string>
-    <string name="premium_recommended">Recomendado</string>
-    <string name="premium_annual_label">Premium anual</string>
-    <string name="premium_monthly_label">Premium mensual</string>
-    <string name="active_products_label">Productos activos</string>
-    <string name="total_scans_label">Escaneos</string>
-    <string name="consumed_registered_label">Consumidos</string>
-    <string name="discarded_registered_label">Desechados</string>
+    <string name="hero_title" translatable="false">Aprovecha tus alimentos</string>
+    <string name="hero_subtitle" translatable="false">Controla lo que caduca y recibe avisos a tiempo.</string>
+    <string name="quick_actions" translatable="false">Acciones rápidas</string>
+    <string name="premium_recommended" translatable="false">Recomendado</string>
+    <string name="premium_annual_label" translatable="false">Premium anual</string>
+    <string name="premium_monthly_label" translatable="false">Premium mensual</string>
+    <string name="active_products_label" translatable="false">Productos activos</string>
+    <string name="total_scans_label" translatable="false">Escaneos</string>
+    <string name="consumed_registered_label" translatable="false">Consumidos</string>
+    <string name="discarded_registered_label" translatable="false">Desechados</string>
     <string name="pantry_title">Tu despensa</string>
     <string name="pantry_subtitle">Todo bajo control</string>
     <string name="upcoming_products">Productos próximos</string>
