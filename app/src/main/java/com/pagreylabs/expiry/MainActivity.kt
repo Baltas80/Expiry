@@ -175,14 +175,14 @@ private fun ExpiryApp(scannedBarcode: String?, scannedProductName: String, scann
     deleteTarget?.let { item -> AlertDialog(onDismissRequest = { deleteTarget = null }, title = { Text(stringResource(R.string.delete_product)) }, text = { Text(stringResource(R.string.delete_confirm, item.name)) }, confirmButton = { Button({ cancelReminder(context, item.id); repository.delete(item.id); items = repository.all(); deleteTarget = null }) { Text(stringResource(R.string.delete_product)) } }, dismissButton = { TextButton({ deleteTarget = null }) { Text(stringResource(R.string.cancel)) } }) }
     outcomeTarget?.let { item -> AlertDialog(onDismissRequest = { outcomeTarget = null }, title = { Text(stringResource(R.string.record_result)) }, text = { Text(stringResource(R.string.what_happened, item.name)) }, confirmButton = { Button({ repository.recordOutcome(item, OutcomeType.CONSUMED); cancelReminder(context, item.id); repository.delete(item.id); items = repository.all(); outcomeTarget = null }) { Text(stringResource(R.string.consumed)) } }, dismissButton = { TextButton({ repository.recordOutcome(item, OutcomeType.DISCARDED); cancelReminder(context, item.id); repository.delete(item.id); items = repository.all(); outcomeTarget = null }) { Text(stringResource(R.string.discarded)) } }) }
     if (showStats) ConsumptionStatsDialog(items, repository.scanHistory(), repository.outcomeHistory()) { showStats = false }
-    if (showSettings) ExpirySettingsDialog(billingManager, isPremium, billingOffers) { showSettings = false }
+    if (showSettings) ExpirySettingsDialog(billingManager, isPremium, billingOffers, lifetimeOffer) { showSettings = false }
     LaunchedEffect(scannedBarcode) { if (scannedBarcode != null && !showAdd && editing == null) showAdd = true }
 }
 
 @Composable private fun SummaryCard(count: Int, label: String, color: androidx.compose.ui.graphics.Color, modifier: Modifier = Modifier) { Card(modifier = modifier.heightIn(min = 92.dp).semantics(mergeDescendants = true) { contentDescription = "$count, $label" }, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow), shape = MaterialTheme.shapes.medium) { Column(Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) { Text(count.toString(), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = color); Text(label, style = MaterialTheme.typography.labelSmall, maxLines = 2) } } }
 
 @Composable
-private fun ExpirySettingsDialog(billingManager: PremiumBillingManager, isPremium: Boolean, offers: List<PremiumBillingManager.Offer>, onDismiss: () -> Unit) {
+private fun ExpirySettingsDialog(billingManager: PremiumBillingManager, isPremium: Boolean, offers: List<PremiumBillingManager.SubscriptionOffer>, lifetimeOffer: PremiumBillingManager.LifetimeOffer?, onDismiss: () -> Unit) {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("expiry_settings", Context.MODE_PRIVATE) }
     val notificationsEnabled = if (Build.VERSION.SDK_INT >= 24) (context.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager).areNotificationsEnabled() else true
