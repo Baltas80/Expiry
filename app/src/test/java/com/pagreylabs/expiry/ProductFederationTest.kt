@@ -34,6 +34,44 @@ class ProductFederationTest {
     }
 
     @Test
+    fun authoritativeMedicineSourceWinsOverMoreCompleteConsumerRecord() {
+        val consumer = ProductSources.ProductData(
+            barcode = "8470001234567",
+            productType = ProductSources.ProductType.FOOD,
+            name = "Producto ambiguo",
+            brand = "Marca",
+            manufacturer = "Fabricante",
+            category = "Categoria",
+            imageUrl = "https://example.invalid/image.jpg",
+            quantity = "500 g",
+            ingredients = "Ingredientes",
+            productUrl = "https://example.invalid/product",
+            sourceId = "openfacts-universal",
+            sourceName = "Open Facts universal",
+            confidence = 0.72
+        )
+        val medicine = ProductSources.ProductData(
+            barcode = "8470001234567",
+            productType = ProductSources.ProductType.MEDICINE,
+            name = "Medicamento oficial",
+            manufacturer = "Laboratorio oficial",
+            nationalCode = "1234567",
+            registrationNumber = "12345",
+            sourceId = "aemps-cima",
+            sourceName = "AEMPS CIMA",
+            confidence = 0.98
+        )
+
+        val merged = ProductSources.mergeAll(listOf(consumer, medicine))
+
+        assertEquals(ProductSources.ProductType.MEDICINE, merged?.productType)
+        assertEquals("Medicamento oficial", merged?.name)
+        assertEquals("aemps-cima", merged?.sourceId)
+        assertEquals("1234567", merged?.nationalCode)
+        assertEquals("500 g", merged?.quantity)
+    }
+
+    @Test
     fun inventoryContainsCoreProductAndRegulatorySources() {
         val ids = ProductSources.inventory.map { it.id }.toSet()
         assertTrue(ids.contains("openfacts-universal"))
