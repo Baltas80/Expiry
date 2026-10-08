@@ -632,7 +632,7 @@ private fun HomeScreen(
                     if (items.isNotEmpty()) {
                         TextButton(onClick = onOpenProducts) {
                             Text(items.size.toString())
-                            Icon(Icons.AutoMirrored.Filled.ArrowForward, null, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Filled.ArrowForward, null, modifier = Modifier.size(16.dp))
                         }
                     }
                 }
@@ -921,7 +921,7 @@ private fun SectionHeader(title: String, action: String?, onAction: (() -> Unit)
         if (action != null && onAction != null) {
             TextButton(onClick = onAction) {
                 Text(action)
-                Icon(Icons.AutoMirrored.Filled.ArrowForward, null, modifier = Modifier.size(16.dp))
+                Icon(Icons.Filled.ArrowForward, null, modifier = Modifier.size(16.dp))
             }
         }
     }
@@ -1039,7 +1039,7 @@ private fun CompactExpiryCard(item: ExpiryItem) {
             }
             Spacer(Modifier.width(8.dp))
             Icon(
-                Icons.AutoMirrored.Filled.ArrowForward,
+                Icons.Filled.ArrowForward,
                 null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -1879,7 +1879,7 @@ private fun PremiumSettingsCard(isPremium: Boolean, onClick: () -> Unit) {
                 )
             }
             Icon(
-                Icons.AutoMirrored.Filled.ArrowForward,
+                Icons.Filled.ArrowForward,
                 null,
                 tint = if (isPremium) MaterialTheme.colorScheme.primary else Color.White,
                 modifier = Modifier.size(22.dp)
@@ -1920,7 +1920,7 @@ private fun SettingsCard(
             },
             trailingContent = {
                 Icon(
-                    Icons.AutoMirrored.Filled.ArrowForward,
+                    Icons.Filled.ArrowForward,
                     null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1977,7 +1977,7 @@ private fun PremiumPromoCard(onClick: () -> Unit) {
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(Modifier.width(8.dp))
-                Icon(Icons.AutoMirrored.Filled.ArrowForward, null, modifier = Modifier.size(18.dp))
+                Icon(Icons.Filled.ArrowForward, null, modifier = Modifier.size(18.dp))
             }
         }
     }
