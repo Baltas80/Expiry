@@ -57,6 +57,7 @@ class PremiumBillingManager(context: Context) : AutoCloseable {
         .setListener { billingResult, purchases ->
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK && purchases != null) {
                 processSubscriptionPurchases(purchases)
+                processOneTimePurchases(purchases)
             }
         }
         .enableAutoServiceReconnection()
