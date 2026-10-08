@@ -8,6 +8,7 @@ import com.android.billingclient.api.BillingClient.ProductType
 import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingFlowParams
 import com.android.billingclient.api.BillingResult
+import com.android.billingclient.api.PendingPurchasesParams
 import com.android.billingclient.api.ProductDetails
 import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.QueryProductDetailsParams
@@ -17,12 +18,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * Owns the Play Billing connection and the local Premium entitlement state.
+ * Owns the Play Billing connection and Premium entitlement state.
  *
- * Expiry uses one subscription product with multiple base plans plus a non-consumable lifetime purchase. The app never
- * grants Premium merely because a purchase flow was launched: entitlement is
- * refreshed from active Play purchases and unacknowledged purchases are
- * acknowledged after Play reports them as purchased.
+ * Premium can be granted by either the recurring subscription or the
+ * non-consumable lifetime purchase. The app only grants entitlement from
+ * purchases reported as PURCHASED by Google Play.
  *
  * A backend can be added later for server-side purchase-token verification.
  */
@@ -61,7 +61,7 @@ class PremiumBillingManager(context: Context) : AutoCloseable {
         }
         .enableAutoServiceReconnection()
         .enablePendingPurchases(
-            com.android.billingclient.api.PendingPurchasesParams.newBuilder()
+            PendingPurchasesParams.newBuilder()
                 .enableOneTimeProducts()
                 .build()
         )
@@ -77,9 +77,7 @@ class PremiumBillingManager(context: Context) : AutoCloseable {
                 if (result.responseCode == BillingClient.BillingResponseCode.OK) refresh()
             }
 
-            override fun onBillingServiceDisconnected() {
-                // Play may reconnect on the next explicit refresh.
-            }
+            override fun onBillingServiceDisconnected() = Unit
         })
     }
 
@@ -89,6 +87,13 @@ class PremiumBillingManager(context: Context) : AutoCloseable {
             return
         }
 
+        querySubscriptionDetails()
+        queryLifetimeDetails()
+        queryActivePurchases(ProductType.SUBS)
+        queryActivePurchases(ProductType.INAPP)
+    }
+
+    private fun querySubscriptionDetails() {
         val query = QueryProductDetailsParams.newBuilder()
             .setProductList(
                 listOf(
@@ -109,8 +114,10 @@ class PremiumBillingManager(context: Context) : AutoCloseable {
                     }
             }
         }
+    }
 
-        val lifetimeQuery = QueryProductDetailsParams.newBuilder()
+    private fun queryLifetimeDetails() {
+        val query = QueryProductDetailsParams.newBuilder()
             .setProductList(
                 listOf(
                     QueryProductDetailsParams.Product.newBuilder()
@@ -121,25 +128,26 @@ class PremiumBillingManager(context: Context) : AutoCloseable {
             )
             .build()
 
-        billingClient.queryProductDetailsAsync(lifetimeQuery) { result, details ->
+        billingClient.queryProductDetailsAsync(query) { result, details ->
             if (result.responseCode == BillingClient.BillingResponseCode.OK) {
-                _lifetimeOffer.value = details.productDetailsList.firstOrNull()?.let(::LifetimeOffer)
-            }
-        }
-
-        billingClient.queryPurchasesAsync(
-            QueryPurchasesParams.newBuilder().setProductType(ProductType.SUBS).build()
-        ) { result, purchases ->
-            if (result.responseCode == BillingClient.BillingResponseCode.OK) {
-                processPurchases(purchases)
+                _lifetimeOffer.value = details.productDetailsList
+                    .firstOrNull()
+                    ?.let(::LifetimeOffer)
             }
         }
     }
 
+    private fun queryActivePurchases(productType: String) {
         billingClient.queryPurchasesAsync(
-            QueryPurchasesParams.newBuilder().setProductType(ProductType.INAPP).build()
+            QueryPurchasesParams.newBuilder()
+                .setProductType(productType)
+                .build()
         ) { result, purchases ->
-            if (result.responseCode == BillingClient.BillingResponseCode.OK) {
+            if (result.responseCode != BillingClient.BillingResponseCode.OK) return@queryPurchasesAsync
+
+            if (productType == ProductType.SUBS) {
+                processSubscriptionPurchases(purchases)
+            } else {
                 processOneTimePurchases(purchases)
             }
         }
@@ -148,10 +156,7 @@ class PremiumBillingManager(context: Context) : AutoCloseable {
     fun purchase(activity: Activity, offer: SubscriptionOffer): BillingResult {
         if (!billingClient.isReady) {
             connect()
-            return BillingResult.newBuilder()
-                .setResponseCode(BillingClient.BillingResponseCode.SERVICE_DISCONNECTED)
-                .setDebugMessage("Billing service is not ready")
-                .build()
+            return serviceDisconnectedResult()
         }
 
         val productParams = BillingFlowParams.ProductDetailsParams.newBuilder()
@@ -167,12 +172,36 @@ class PremiumBillingManager(context: Context) : AutoCloseable {
         )
     }
 
-    private fun processPurchases(purchases: List<Purchase>) {
+    fun purchaseLifetime(activity: Activity, offer: LifetimeOffer): BillingResult {
+        if (!billingClient.isReady) {
+            connect()
+            return serviceDisconnectedResult()
+        }
+
+        val productParams = BillingFlowParams.ProductDetailsParams.newBuilder()
+            .setProductDetails(offer.productDetails)
+            .build()
+
+        return billingClient.launchBillingFlow(
+            activity,
+            BillingFlowParams.newBuilder()
+                .setProductDetailsParamsList(listOf(productParams))
+                .build()
+        )
+    }
+
+    private fun serviceDisconnectedResult(): BillingResult =
+        BillingResult.newBuilder()
+            .setResponseCode(BillingClient.BillingResponseCode.SERVICE_DISCONNECTED)
+            .setDebugMessage("Billing service is not ready")
+            .build()
+
+    private fun processSubscriptionPurchases(purchases: List<Purchase>) {
         val active = purchases.any {
             it.products.contains(MonetizationConfig.PREMIUM_NO_ADS_PRODUCT_ID) &&
                 it.purchaseState == Purchase.PurchaseState.PURCHASED
         }
-        _isPremium.value = active
+        if (active) _isPremium.value = true
 
         purchases
             .filter {
@@ -180,39 +209,33 @@ class PremiumBillingManager(context: Context) : AutoCloseable {
                     it.purchaseState == Purchase.PurchaseState.PURCHASED &&
                     !it.isAcknowledged
             }
-            .forEach { purchase ->
-                billingClient.acknowledgePurchase(
-                    AcknowledgePurchaseParams.newBuilder()
-                        .setPurchaseToken(purchase.purchaseToken)
-                        .build()
-                ) { result ->
-                    if (result.responseCode == BillingClient.BillingResponseCode.OK) {
-                        _isPremium.value = true
-                    }
-                }
-            }
+            .forEach(::acknowledgePurchase)
     }
 
     private fun processOneTimePurchases(purchases: List<Purchase>) {
-        if (purchases.any {
+        val active = purchases.any {
             it.products.contains(MonetizationConfig.PREMIUM_LIFETIME_PRODUCT_ID) &&
                 it.purchaseState == Purchase.PurchaseState.PURCHASED
-        }) {
-            _isPremium.value = true
         }
-        purchases.filter {
-            it.products.contains(MonetizationConfig.PREMIUM_LIFETIME_PRODUCT_ID) &&
-                it.purchaseState == Purchase.PurchaseState.PURCHASED &&
-                !it.isAcknowledged
-        }.forEach { purchase ->
-            billingClient.acknowledgePurchase(
-                AcknowledgePurchaseParams.newBuilder()
-                    .setPurchaseToken(purchase.purchaseToken)
-                    .build()
-            ) { result ->
-                if (result.responseCode == BillingClient.BillingResponseCode.OK) {
-                    _isPremium.value = true
-                }
+        if (active) _isPremium.value = true
+
+        purchases
+            .filter {
+                it.products.contains(MonetizationConfig.PREMIUM_LIFETIME_PRODUCT_ID) &&
+                    it.purchaseState == Purchase.PurchaseState.PURCHASED &&
+                    !it.isAcknowledged
+            }
+            .forEach(::acknowledgePurchase)
+    }
+
+    private fun acknowledgePurchase(purchase: Purchase) {
+        billingClient.acknowledgePurchase(
+            AcknowledgePurchaseParams.newBuilder()
+                .setPurchaseToken(purchase.purchaseToken)
+                .build()
+        ) { result ->
+            if (result.responseCode == BillingClient.BillingResponseCode.OK) {
+                _isPremium.value = true
             }
         }
     }
