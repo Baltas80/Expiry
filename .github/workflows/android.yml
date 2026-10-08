@@ -2,7 +2,9 @@ name: Android build
 
 on:
   push:
-    branches: [ master ]
+    branches:
+      - master
+      - feature/product-data-multiplex
   pull_request:
     branches: [ master ]
 
