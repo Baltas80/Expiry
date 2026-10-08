@@ -14,6 +14,7 @@ data class ExpiryItem(
     val reminderDays: Int = 7,
     val barcode: String = "",
     val imageUrl: String = "",
+    val quantity: String = "",
     val brand: String = "",
     val manufacturer: String = "",
     val productType: String = "",
@@ -33,6 +34,7 @@ data class ExpiryItem(
         put("reminderDays", reminderDays)
         put("barcode", barcode)
         put("imageUrl", imageUrl)
+        put("quantity", quantity)
         put("brand", brand)
         put("manufacturer", manufacturer)
         put("productType", productType)
@@ -54,6 +56,7 @@ data class ExpiryItem(
             reminderDays = o.optInt("reminderDays", 7),
             barcode = o.optString("barcode"),
             imageUrl = o.optString("imageUrl"),
+            quantity = o.optString("quantity"),
             brand = o.optString("brand"),
             manufacturer = o.optString("manufacturer"),
             productType = o.optString("productType"),
