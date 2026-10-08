@@ -6,4 +6,7 @@
     <string name="premium_no_ads_active" translatable="false">Premium activo · Sin anuncios</string>
     <string name="premium_no_ads_unavailable" translatable="false">Premium estará disponible cuando la suscripción esté publicada en Google Play.</string>
     <string name="premium_no_ads_manage" translatable="false">Gestionar suscripción</string>
+    <string name="premium_lifetime_title" translatable="false">Premium de por vida</string>
+    <string name="premium_lifetime_description" translatable="false">Sin anuncios para siempre con un único pago.</string>
+    <string name="premium_lifetime_buy" translatable="false">Comprar de por vida</string>
 </resources>
