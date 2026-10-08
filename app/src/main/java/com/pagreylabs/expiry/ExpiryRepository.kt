@@ -54,6 +54,21 @@ class ExpiryRepository(context: Context) {
         prefs.edit().putString("product_catalog", catalog.toJson()).apply()
     }
 
+    fun rememberProduct(product: ProductRecord) {
+        if (product.barcode.isBlank() || product.name.isBlank()) return
+        val catalog = productCatalog()
+        catalog.remember(
+            barcode = product.barcode,
+            name = product.name,
+            category = product.category,
+            brand = product.brand,
+            kind = product.kind,
+            imageUrl = product.imageUrl,
+            sourceId = product.sourceId
+        )
+        prefs.edit().putString("product_catalog", catalog.toJson()).apply()
+    }
+
     fun findProductByBarcode(barcode: String): CatalogProduct? =
         productCatalog().find(barcode)
 
@@ -195,7 +210,14 @@ class ExpiryRepository(context: Context) {
     }
 }
 
-data class CatalogProduct(val name: String, val category: String)
+data class CatalogProduct(
+    val name: String,
+    val category: String,
+    val brand: String = "",
+    val kind: ProductKind = ProductKind.UNKNOWN,
+    val imageUrl: String = "",
+    val sourceId: String = ""
+)
 
 data class ScanEvent(val barcode: String, val timestamp: Long)
 
