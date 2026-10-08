@@ -13,17 +13,12 @@ import java.util.concurrent.TimeUnit
 /**
  * Product-data federation for barcode capture.
  *
- * The runtime pipeline deliberately separates product identity from enrichment:
- * - local catalog is checked first;
- * - AEMPS CIMA is queried for Spanish medicines when a national code can be
- *   derived from the GS1/GTIN representation;
- * - the Open Facts ecosystem is queried next, with a universal endpoint first
- *   and specialised instances as fallbacks;
- * - richer fields are merged instead of letting a weaker source overwrite a
- *   stronger field.
- *
- * Sources that require commercial credentials are represented in the inventory
- * but are not called from the APK until a secure backend proxy is available.
+ * Public client-safe sources are queried without exposing API keys. The design
+ * intentionally distinguishes:
+ * - product identity (GS1/AEMPS)
+ * - consumer/product enrichment (Open Facts)
+ * - ingredient/regulatory reference data (CosIng)
+ * - future credentialed sources (secure backend only)
  */
 object ProductSources {
     enum class ProductType {
@@ -31,6 +26,7 @@ object ProductSources {
         BEAUTY,
         PET_FOOD,
         MEDICINE,
+        VETERINARY_MEDICINE,
         MEDICAL_DEVICE,
         GENERAL,
         UNKNOWN
@@ -66,13 +62,13 @@ object ProductSources {
         val notes: String
     )
 
-    private const val DEFAULT_TIMEOUT_MS = 6500
+    private const val TIMEOUT_MS = 6500L
 
     val inventory: List<SourceDescriptor> = listOf(
         SourceDescriptor("local", "Expiry local catalog", true, false, true,
             "Previously resolved products stored on-device."),
         SourceDescriptor("openfacts-universal", "Open Facts universal", true, false, true,
-            "Single barcode lookup across Food, Beauty, Pet Food and Products Facts."),
+            "Single lookup across Food, Beauty, Pet Food and Products Facts."),
         SourceDescriptor("openfoodfacts", "Open Food Facts", true, false, true,
             "Food products and label/nutrition data."),
         SourceDescriptor("openbeautyfacts", "Open Beauty Facts", true, false, true,
@@ -82,11 +78,15 @@ object ProductSources {
         SourceDescriptor("openproductsfacts", "Open Products Facts", true, false, true,
             "General/non-food products."),
         SourceDescriptor("aemps-cima", "AEMPS CIMA", true, false, true,
-            "Spanish medicines. Match GTIN/NTIN to Código Nacional and query the official CIMA REST service."),
+            "Official Spanish human medicines, presentation data and supply status."),
+        SourceDescriptor("aemps-cimavet", "AEMPS CIMA Vet", true, false, true,
+            "Official Spanish veterinary medicines."),
         SourceDescriptor("gs1-verified", "GS1 Verified by GS1", true, true, false,
-            "Authoritative GTIN/company/product verification. Advanced API access is member-based."),
+            "Authoritative GTIN/company/product verification; advanced API access is member-based."),
+        SourceDescriptor("eudamed", "EUDAMED UDI/Devices", true, false, false,
+            "EU medical-device UDI/device registry; integrate via its public datasets/backend."),
         SourceDescriptor("cosing", "European Commission CosIng", false, false, false,
-            "Cosmetic ingredient/substance enrichment, not a consumer-product barcode catalogue."),
+            "Cosmetic ingredient/substance and regulatory reference; not a product barcode catalogue."),
         SourceDescriptor("upcitemdb", "UPCitemdb", true, true, false,
             "Optional secondary barcode catalogue; integrate through a secure backend key."),
         SourceDescriptor("barcode-lookup", "Barcode Lookup", true, true, false,
@@ -106,6 +106,23 @@ object ProductSources {
         OpenFactsSource("openbeautyfacts", "Open Beauty Facts", "https://world.openbeautyfacts.org", ProductType.BEAUTY, 0.84),
         OpenFactsSource("openpetfoodfacts", "Open Pet Food Facts", "https://world.openpetfoodfacts.org", ProductType.PET_FOOD, 0.76),
         OpenFactsSource("openproductsfacts", "Open Products Facts", "https://world.openproductsfacts.org", ProductType.GENERAL, 0.68)
+    )
+
+    private val aempsSources = listOf(
+        AempsMedicineSource(
+            id = "aemps-cima",
+            name = "AEMPS CIMA",
+            endpoint = { cn -> "https://cima.aemps.es/cima/rest/presentacion/$cn" },
+            productType = ProductType.MEDICINE,
+            confidence = 0.98
+        ),
+        AempsMedicineSource(
+            id = "aemps-cimavet",
+            name = "AEMPS CIMA Vet",
+            endpoint = { cn -> "https://cimavet.aemps.es/cimavet/rest/vet/presentacion/$cn" },
+            productType = ProductType.VETERINARY_MEDICINE,
+            confidence = 0.97
+        )
     )
 
     fun local(context: Context, barcode: String): ProductData? {
@@ -129,30 +146,47 @@ object ProductSources {
     }
 
     /**
-     * Queries all public client-safe sources concurrently.
+     * First wave: AEMPS human + veterinary medicine + Open Facts universal.
      *
-     * CIMA is intentionally queried at the same time as the Open Facts
-     * ecosystem, because a Spanish medicine may exist in CIMA but not in an
-     * open consumer catalogue.
+     * Second wave: the specialised Open Facts instances are requested in
+     * parallel only when the first wave does not return enough information.
+     * This gives broad coverage without hammering all databases on every scan.
      */
     fun lookupRemote(barcode: String): ProductData? {
         if (barcode.isBlank()) return null
 
         val executor = Executors.newFixedThreadPool(6)
         return try {
-            val tasks = mutableListOf<Callable<ProductData?>>()
-            tasks += Callable { CimaSource.lookup(barcode) }
-            tasks += Callable { universalOpenFacts.lookup(barcode) }
-
-            // Specific Open Facts instances are fallback/enrichment sources.
-            for (source in specialisedOpenFacts) {
-                tasks += Callable { source.lookup(barcode) }
+            val firstWave = mutableListOf<Callable<ProductData?>>()
+            for (source in aempsSources) {
+                firstWave += Callable { source.lookup(barcode) }
             }
+            firstWave += Callable { universalOpenFacts.lookup(networkBarcode(barcode)) }
 
-            executor.invokeAll(tasks, DEFAULT_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+            val firstResults = executor.invokeAll(firstWave, TIMEOUT_MS, TimeUnit.MILLISECONDS)
                 .mapNotNull { future -> runCatching { future.get() }.getOrNull() }
                 .filterNot(ProductData::isEmpty)
-                .let(::mergeAll)
+
+            var allResults = firstResults
+            val openFactsResult = firstResults.firstOrNull {
+                it.sourceId == "openfacts-universal"
+            }
+            val needsSpecialised = openFactsResult == null ||
+                completeness(openFactsResult) < 6 ||
+                openFactsResult.productType == ProductType.UNKNOWN
+
+            if (needsSpecialised) {
+                val secondWave = specialisedOpenFacts.map { source ->
+                    Callable { source.lookup(networkBarcode(barcode)) }
+                }
+                val secondResults = executor.invokeAll(secondWave, TIMEOUT_MS, TimeUnit.MILLISECONDS)
+                    .mapNotNull { future -> runCatching { future.get() }.getOrNull() }
+                    .filterNot(ProductData::isEmpty)
+
+                allResults = allResults + secondResults
+            }
+
+            mergeAll(allResults)
         } finally {
             executor.shutdownNow()
         }
@@ -185,7 +219,8 @@ object ProductSources {
             if (product.supplyProblem != null) 1 else 0
 
     private fun sourcePriority(sourceId: String): Int = when (sourceId) {
-        "aemps-cima" -> 100
+        "aemps-cima" -> 110
+        "aemps-cimavet" -> 105
         "openbeautyfacts" -> 90
         "openfoodfacts" -> 80
         "openfacts-universal" -> 75
@@ -203,6 +238,7 @@ object ProductSources {
         val confidence: Double
     ) {
         fun lookup(barcode: String): ProductData? {
+            if (barcode.isBlank()) return null
             val fields = listOf(
                 "code", "product_name", "abbreviated_product_name", "generic_name",
                 "brands", "categories", "categories_tags", "image_front_url",
@@ -226,8 +262,8 @@ object ProductSources {
 
             return try {
                 connection.requestMethod = "GET"
-                connection.connectTimeout = DEFAULT_TIMEOUT_MS
-                connection.readTimeout = DEFAULT_TIMEOUT_MS
+                connection.connectTimeout = TIMEOUT_MS.toInt()
+                connection.readTimeout = TIMEOUT_MS.toInt()
                 connection.instanceFollowRedirects = true
                 connection.setRequestProperty("Accept", "application/json")
                 connection.setRequestProperty(
@@ -282,49 +318,59 @@ object ProductSources {
         }
     }
 
-    private object CimaSource {
-        fun lookup(barcode: String): ProductData? {
-            val nationalCode = barcodeNormalizerNationalCode(barcode) ?: return null
-            return lookupNationalCode(nationalCode)
-        }
-
-        private fun lookupNationalCode(nationalCode: String): ProductData? {
-            val url = runCatching {
-                URL("https://cima.aemps.es/cima/rest/presentacion/$nationalCode")
-            }.getOrNull() ?: return null
+    private data class AempsMedicineSource(
+        val id: String,
+        val name: String,
+        val endpoint: (String) -> String,
+        val productType: ProductType,
+        val confidence: Double
+    ) {
+        fun lookup(scannedBarcode: String): ProductData? {
+            val nationalCode = barcodeNormalizerNationalCode(scannedBarcode) ?: return null
+            val url = runCatching { URL(endpoint(nationalCode)) }.getOrNull() ?: return null
             val connection = runCatching {
                 url.openConnection() as HttpURLConnection
             }.getOrNull() ?: return null
 
             return try {
                 connection.requestMethod = "GET"
-                connection.connectTimeout = DEFAULT_TIMEOUT_MS
-                connection.readTimeout = DEFAULT_TIMEOUT_MS
+                connection.connectTimeout = TIMEOUT_MS.toInt()
+                connection.readTimeout = TIMEOUT_MS.toInt()
                 connection.instanceFollowRedirects = true
                 connection.setRequestProperty("Accept", "application/json")
-                connection.setRequestProperty("User-Agent", "Expiry/1.0.6 (public AEMPS CIMA client)")
-
+                connection.setRequestProperty("User-Agent", "Expiry/1.0.6 (public AEMPS client)")
                 if (connection.responseCode !in 200..299) return null
+
                 val root = JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
                 val name = firstNonBlank(root.optString("nombre"), root.optString("name"))
                 if (name.isBlank()) return null
 
                 ProductData(
-                    barcode = firstNonBlank(root.optString("gtin"), barcode),
-                    productType = ProductType.MEDICINE,
+                    barcode = firstNonBlank(root.optString("gtin"), scannedBarcode),
+                    productType = productType,
                     name = name,
-                    manufacturer = firstNonBlank(root.optString("labtitular"), root.optString("laboratorio")),
-                    activeIngredients = firstNonBlank(root.optString("pactivos"), root.optString("principiosActivos")),
+                    manufacturer = firstNonBlank(
+                        root.optString("labtitular"),
+                        root.optString("laboratorio")
+                    ),
+                    activeIngredients = firstNonBlank(
+                        root.optString("pactivos"),
+                        root.optString("principiosActivos")
+                    ),
                     nationalCode = firstNonBlank(root.optString("cn"), nationalCode),
                     registrationNumber = root.optString("nregistro"),
                     commercialized = nullableBoolean(root, "comerc", "comercializado"),
                     supplyProblem = nullableBoolean(root, "psum"),
-                    productUrl = root.optString("nregistro").takeIf(String::isNotBlank)?.let {
-                        "https://cima.aemps.es/cima/publico/detalle.html?nregistro=$it"
+                    productUrl = root.optString("nregistro").takeIf(String::isNotBlank)?.let { registration ->
+                        if (productType == ProductType.VETERINARY_MEDICINE) {
+                            "https://cimavet.aemps.es/cimavet/publico/detalle.html?nregistro=$registration"
+                        } else {
+                            "https://cima.aemps.es/cima/publico/detalle.html?nregistro=$registration"
+                        }
                     }.orEmpty(),
-                    sourceId = "aemps-cima",
-                    sourceName = "AEMPS CIMA",
-                    confidence = 0.98
+                    sourceId = id,
+                    sourceName = name,
+                    confidence = confidence
                 )
             } finally {
                 connection.disconnect()
@@ -343,8 +389,7 @@ object ProductSources {
      * Spain-specific medicine barcode decoding.
      *
      * - GS1 AI (712) carries the seven-digit Código Nacional.
-     * - Spanish NTINs begin with 0847000; the final seven digits are the CN,
-     *   including its check digit.
+     * - Spanish NTINs begin with 0847000; the final seven digits are the CN.
      * - 13-digit retail scans beginning 847000 are also tested as NTIN.
      */
     internal fun barcodeNormalizerNationalCode(barcode: String): String? {
@@ -364,6 +409,16 @@ object ProductSources {
         }
     }
 
+    /**
+     * Open Facts accepts normalized numeric GTIN values; GS1 DataMatrix payloads
+     * are reduced to the AI (01) GTIN when present.
+     */
+    private fun networkBarcode(barcode: String): String {
+        val raw = barcode.trim()
+        Regex("01\\D*(\\d{14})").find(raw)?.groupValues?.get(1)?.let { return it }
+        return raw.filterNot(Char::isWhitespace)
+    }
+
     private fun ProductData.isEmpty(): Boolean =
         name.isBlank() && brand.isBlank() && manufacturer.isBlank() &&
             category.isBlank() && imageUrl.isBlank() && quantity.isBlank() &&
@@ -372,9 +427,15 @@ object ProductSources {
             productUrl.isBlank()
 
     private fun ProductData.merge(other: ProductData): ProductData {
-        val preferOtherIdentity = other.confidence > confidence
+        val otherIsStronger = other.confidence > confidence
         return copy(
-            productType = if (productType == ProductType.UNKNOWN) other.productType else productType,
+            productType = if (otherIsStronger && other.productType != ProductType.UNKNOWN) {
+                other.productType
+            } else if (productType == ProductType.UNKNOWN) {
+                other.productType
+            } else {
+                productType
+            },
             name = firstNonBlank(name, other.name),
             brand = firstNonBlank(brand, other.brand),
             manufacturer = firstNonBlank(manufacturer, other.manufacturer),
@@ -388,8 +449,8 @@ object ProductSources {
             commercialized = commercialized ?: other.commercialized,
             supplyProblem = supplyProblem ?: other.supplyProblem,
             productUrl = firstNonBlank(productUrl, other.productUrl),
-            sourceId = if (preferOtherIdentity) other.sourceId else sourceId,
-            sourceName = if (preferOtherIdentity) other.sourceName else sourceName,
+            sourceId = if (otherIsStronger) other.sourceId else sourceId,
+            sourceName = if (otherIsStronger) other.sourceName else sourceName,
             confidence = maxOf(confidence, other.confidence),
             barcode = firstNonBlank(barcode, other.barcode)
         )
