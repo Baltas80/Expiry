@@ -10,6 +10,11 @@ class MonetizationConfigTest {
     }
 
     @Test
+    fun lifetimeProductIdIsStable() {
+        assertEquals("premium_lifetime", MonetizationConfig.PREMIUM_LIFETIME_PRODUCT_ID)
+    }
+
+    @Test
     fun basePlanIdsAreStable() {
         assertEquals("monthly", MonetizationConfig.MONTHLY_BASE_PLAN_ID)
         assertEquals("annual", MonetizationConfig.ANNUAL_BASE_PLAN_ID)
