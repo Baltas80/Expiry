@@ -51,8 +51,8 @@ object ProductDataAggregator {
                             .joinToString("|")
                     }
                     .sortedWith(
-                        compareByDescending<ProductRecord> { it.confidence }
-                            .thenByDescending { it.sourcePriority }
+                        compareByDescending<ProductRecord> { it.sourcePriority }
+                            .thenByDescending { it.confidence }
                     )
             }
 
