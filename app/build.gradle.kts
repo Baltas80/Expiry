@@ -50,6 +50,12 @@ android {
         releaseKeyPassword
     ).all { !it.isNullOrBlank() }
 
+    buildTypes.getByName("release") {
+        isMinifyEnabled = true
+        isShrinkResources = true
+        proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+    }
+
     if (releaseSigningReady) {
         signingConfigs.create("production") {
             storeFile = file(releaseKeystorePath!!)
