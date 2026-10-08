@@ -72,6 +72,7 @@ class ExpiryRepository(context: Context) {
         brand: String = "",
         manufacturer: String = "",
         imageUrl: String = "",
+        quantity: String = "",
         productType: String = "",
         ingredients: String = "",
         activeIngredients: String = "",
