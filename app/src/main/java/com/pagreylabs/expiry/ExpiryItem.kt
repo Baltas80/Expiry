@@ -14,7 +14,6 @@ data class ExpiryItem(
     val reminderDays: Int = 7,
     val barcode: String = "",
     val imageUrl: String = "",
-    val quantity: String = "",
     val brand: String = "",
     val manufacturer: String = "",
     val productType: String = "",
@@ -24,7 +23,8 @@ data class ExpiryItem(
     val registrationNumber: String = "",
     val sourceId: String = "",
     val sourceName: String = "",
-    val sourceConfidence: Double = 0.0
+    val sourceConfidence: Double = 0.0,
+    val quantity: String = ""
 ) {
     fun toJson() = JSONObject().apply {
         put("id", id)
@@ -34,7 +34,6 @@ data class ExpiryItem(
         put("reminderDays", reminderDays)
         put("barcode", barcode)
         put("imageUrl", imageUrl)
-        put("quantity", quantity)
         put("brand", brand)
         put("manufacturer", manufacturer)
         put("productType", productType)
@@ -45,6 +44,7 @@ data class ExpiryItem(
         put("sourceId", sourceId)
         put("sourceName", sourceName)
         put("sourceConfidence", sourceConfidence)
+        put("quantity", quantity)
     }
 
     companion object {
@@ -56,7 +56,6 @@ data class ExpiryItem(
             reminderDays = o.optInt("reminderDays", 7),
             barcode = o.optString("barcode"),
             imageUrl = o.optString("imageUrl"),
-            quantity = o.optString("quantity"),
             brand = o.optString("brand"),
             manufacturer = o.optString("manufacturer"),
             productType = o.optString("productType"),
@@ -66,7 +65,8 @@ data class ExpiryItem(
             registrationNumber = o.optString("registrationNumber"),
             sourceId = o.optString("sourceId"),
             sourceName = o.optString("sourceName"),
-            sourceConfidence = o.optDouble("sourceConfidence", 0.0)
+            sourceConfidence = o.optDouble("sourceConfidence", 0.0),
+            quantity = o.optString("quantity")
         )
     }
 }
