@@ -25,6 +25,7 @@ class LocalProductCatalog(
         brand: String = "",
         manufacturer: String = "",
         imageUrl: String = "",
+        quantity: String = "",
         productType: String = "",
         ingredients: String = "",
         activeIngredients: String = "",
@@ -45,6 +46,7 @@ class LocalProductCatalog(
             put("brand", brand.trim())
             put("manufacturer", manufacturer.trim())
             put("imageUrl", imageUrl.trim())
+            put("quantity", quantity.trim())
             put("productType", productType.trim())
             put("ingredients", ingredients.trim())
             put("activeIngredients", activeIngredients.trim())
@@ -71,6 +73,7 @@ class LocalProductCatalog(
             brand = entry.optString("brand").trim(),
             manufacturer = entry.optString("manufacturer").trim(),
             imageUrl = entry.optString("imageUrl").trim(),
+            quantity = entry.optString("quantity").trim(),
             productType = entry.optString("productType").trim(),
             ingredients = entry.optString("ingredients").trim(),
             activeIngredients = entry.optString("activeIngredients").trim(),
