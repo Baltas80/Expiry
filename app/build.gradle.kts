@@ -22,6 +22,11 @@ android {
             "hi", "bn", "pa", "gu", "mr", "ne", "as", "or", "ta", "te", "kn", "ml",
             "si", "th", "lo", "bo", "my", "km", "ko", "ja", "zh-rCN", "zh-rTW"
         ))
+
+        // AdMob identifiers are supplied only by CI through environment variables.
+        // Empty values keep local/debug builds ad-free and keep credentials out of git.
+        resValue("string", "admob_app_id", System.getenv("EXPIRY_ADMOB_APP_ID").orEmpty())
+        resValue("string", "admob_banner_ad_unit_id", System.getenv("EXPIRY_ADMOB_ANDROID_BANNER_ID").orEmpty())
     }
 
     buildFeatures {
