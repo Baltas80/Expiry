@@ -111,6 +111,7 @@ private fun ExpiryApp(scannedBarcode: String?, scannedProductName: String, scann
     val billingManager = remember { PremiumBillingManager(context.applicationContext) }
     val isPremium by billingManager.isPremium.collectAsState()
     val billingOffers by billingManager.offers.collectAsState()
+    val lifetimeOffer by billingManager.lifetimeOffer.collectAsState()
     DisposableEffect(billingManager) {
         billingManager.connect()
         onDispose { billingManager.close() }
@@ -199,7 +200,7 @@ private fun ExpirySettingsDialog(billingManager: PremiumBillingManager, isPremiu
         SettingsSectionTitle(stringResource(R.string.premium_no_ads_title))
         Text(if (isPremium) stringResource(R.string.premium_no_ads_active) else stringResource(R.string.premium_no_ads_description), style = MaterialTheme.typography.bodyMedium)
         if (!isPremium) {
-            if (offers.isEmpty()) {
+            if (offers.isEmpty() && lifetimeOffer == null) {
                 Text(stringResource(R.string.premium_no_ads_unavailable), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
                 offers.forEach { offer ->
@@ -210,6 +211,16 @@ private fun ExpirySettingsDialog(billingManager: PremiumBillingManager, isPremiu
                         Icon(Icons.Default.WorkspacePremium, null)
                         Spacer(Modifier.width(8.dp))
                         Text(offer.basePlanId + ": " + offer.formattedPrice)
+                    }
+                }
+                lifetimeOffer?.let { offer ->
+                    FilledTonalButton(
+                        onClick = { (context as? android.app.Activity)?.let { billingManager.purchaseLifetime(it, offer) } },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.WorkspacePremium, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(R.string.premium_lifetime_buy) + ": " + offer.formattedPrice)
                     }
                 }
             }
