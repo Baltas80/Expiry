@@ -130,6 +130,17 @@ class MainActivity : ComponentActivity() {
     private var scannedProductName by mutableStateOf("")
     private var scannedProductCategory by mutableStateOf("")
     private var scannedProductImageUrl by mutableStateOf("")
+    private var scannedProductBrand by mutableStateOf("")
+    private var scannedProductManufacturer by mutableStateOf("")
+    private var scannedProductQuantity by mutableStateOf("")
+    private var scannedProductIngredients by mutableStateOf("")
+    private var scannedProductActiveIngredients by mutableStateOf("")
+    private var scannedProductType by mutableStateOf("")
+    private var scannedProductNationalCode by mutableStateOf("")
+    private var scannedProductRegistrationNumber by mutableStateOf("")
+    private var scannedProductSourceId by mutableStateOf("")
+    private var scannedProductSourceName by mutableStateOf("")
+    private var scannedProductConfidence by mutableStateOf(0.0)
     private var adsReady by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -153,6 +164,17 @@ class MainActivity : ComponentActivity() {
                     scannedProductName = scannedProductName,
                     scannedProductCategory = scannedProductCategory,
                     scannedProductImageUrl = scannedProductImageUrl,
+                    scannedProductBrand = scannedProductBrand,
+                    scannedProductManufacturer = scannedProductManufacturer,
+                    scannedProductQuantity = scannedProductQuantity,
+                    scannedProductIngredients = scannedProductIngredients,
+                    scannedProductActiveIngredients = scannedProductActiveIngredients,
+                    scannedProductType = scannedProductType,
+                    scannedProductNationalCode = scannedProductNationalCode,
+                    scannedProductRegistrationNumber = scannedProductRegistrationNumber,
+                    scannedProductSourceId = scannedProductSourceId,
+                    scannedProductSourceName = scannedProductSourceName,
+                    scannedProductConfidence = scannedProductConfidence,
                     adsReady = adsReady,
                     adsManager = adsManager,
                     onScanBarcode = ::launchBarcodeScanner,
@@ -167,6 +189,17 @@ class MainActivity : ComponentActivity() {
         scannedProductName = ""
         scannedProductCategory = ""
         scannedProductImageUrl = ""
+        scannedProductBrand = ""
+        scannedProductManufacturer = ""
+        scannedProductQuantity = ""
+        scannedProductIngredients = ""
+        scannedProductActiveIngredients = ""
+        scannedProductType = ""
+        scannedProductNationalCode = ""
+        scannedProductRegistrationNumber = ""
+        scannedProductSourceId = ""
+        scannedProductSourceName = ""
+        scannedProductConfidence = 0.0
     }
 
     private fun launchBarcodeScanner() {
@@ -191,6 +224,17 @@ class MainActivity : ComponentActivity() {
                                     scannedProductName = result.name
                                     scannedProductCategory = result.category
                                     scannedProductImageUrl = result.imageUrl
+                                    scannedProductBrand = result.brand
+                                    scannedProductManufacturer = result.manufacturer
+                                    scannedProductQuantity = result.quantity
+                                    scannedProductIngredients = result.ingredients
+                                    scannedProductActiveIngredients = result.activeIngredients
+                                    scannedProductType = result.productType.name
+                                    scannedProductNationalCode = result.nationalCode
+                                    scannedProductRegistrationNumber = result.registrationNumber
+                                    scannedProductSourceId = result.sourceId
+                                    scannedProductSourceName = result.sourceName
+                                    scannedProductConfidence = result.confidence
                                 }
                             }
                         }
@@ -228,6 +272,17 @@ private fun ExpiryApp(
     scannedProductName: String,
     scannedProductCategory: String,
     scannedProductImageUrl: String,
+    scannedProductBrand: String,
+    scannedProductManufacturer: String,
+    scannedProductQuantity: String,
+    scannedProductIngredients: String,
+    scannedProductActiveIngredients: String,
+    scannedProductType: String,
+    scannedProductNationalCode: String,
+    scannedProductRegistrationNumber: String,
+    scannedProductSourceId: String,
+    scannedProductSourceName: String,
+    scannedProductConfidence: Double,
     adsReady: Boolean,
     adsManager: AdsManager,
     onScanBarcode: () -> Unit,
@@ -469,6 +524,17 @@ private fun ExpiryApp(
             initialName = scannedProductName,
             initialCategory = scannedProductCategory,
             initialImageUrl = scannedProductImageUrl,
+            initialBrand = scannedProductBrand,
+            initialManufacturer = scannedProductManufacturer,
+            initialQuantity = scannedProductQuantity,
+            initialIngredients = scannedProductIngredients,
+            initialActiveIngredients = scannedProductActiveIngredients,
+            initialProductType = scannedProductType,
+            initialNationalCode = scannedProductNationalCode,
+            initialRegistrationNumber = scannedProductRegistrationNumber,
+            initialSourceId = scannedProductSourceId,
+            initialSourceName = scannedProductSourceName,
+            initialSourceConfidence = scannedProductConfidence,
             onScanBarcode = onScanBarcode,
             onDismiss = {
                 showAdd = false
@@ -490,6 +556,17 @@ private fun ExpiryApp(
             initialName = scannedProductName.ifBlank { item.name },
             initialCategory = scannedProductCategory.ifBlank { item.category },
             initialImageUrl = scannedProductImageUrl.ifBlank { item.imageUrl },
+            initialBrand = scannedProductBrand.ifBlank { item.brand },
+            initialManufacturer = scannedProductManufacturer.ifBlank { item.manufacturer },
+            initialQuantity = scannedProductQuantity.ifBlank { item.quantity },
+            initialIngredients = scannedProductIngredients.ifBlank { item.ingredients },
+            initialActiveIngredients = scannedProductActiveIngredients.ifBlank { item.activeIngredients },
+            initialProductType = scannedProductType.ifBlank { item.productType },
+            initialNationalCode = scannedProductNationalCode.ifBlank { item.nationalCode },
+            initialRegistrationNumber = scannedProductRegistrationNumber.ifBlank { item.registrationNumber },
+            initialSourceId = scannedProductSourceId.ifBlank { item.sourceId },
+            initialSourceName = scannedProductSourceName.ifBlank { item.sourceName },
+            initialSourceConfidence = if (scannedProductConfidence > 0) scannedProductConfidence else item.sourceConfidence,
             onScanBarcode = onScanBarcode,
             onDismiss = {
                 editing = null
@@ -2210,6 +2287,17 @@ private fun ExpiryDialog(
     initialName: String,
     initialCategory: String,
     initialImageUrl: String,
+    initialBrand: String,
+    initialManufacturer: String,
+    initialQuantity: String,
+    initialIngredients: String,
+    initialActiveIngredients: String,
+    initialProductType: String,
+    initialNationalCode: String,
+    initialRegistrationNumber: String,
+    initialSourceId: String,
+    initialSourceName: String,
+    initialSourceConfidence: Double,
     onScanBarcode: () -> Unit,
     onDismiss: () -> Unit,
     onSave: (ExpiryItem) -> Unit
@@ -2226,6 +2314,39 @@ private fun ExpiryDialog(
     }
     var imageUrl by remember(existing?.id, initialBarcode, initialImageUrl) {
         mutableStateOf(initialImageUrl.ifBlank { existing?.imageUrl ?: "" })
+    }
+    var brand by remember(existing?.id, initialBarcode, initialBrand) {
+        mutableStateOf(initialBrand.ifBlank { existing?.brand ?: "" })
+    }
+    var manufacturer by remember(existing?.id, initialBarcode, initialManufacturer) {
+        mutableStateOf(initialManufacturer.ifBlank { existing?.manufacturer ?: "" })
+    }
+    var quantity by remember(existing?.id, initialBarcode, initialQuantity) {
+        mutableStateOf(initialQuantity.ifBlank { "" })
+    }
+    var ingredients by remember(existing?.id, initialBarcode, initialIngredients) {
+        mutableStateOf(initialIngredients.ifBlank { existing?.ingredients ?: "" })
+    }
+    var activeIngredients by remember(existing?.id, initialBarcode, initialActiveIngredients) {
+        mutableStateOf(initialActiveIngredients.ifBlank { existing?.activeIngredients ?: "" })
+    }
+    var productType by remember(existing?.id, initialBarcode, initialProductType) {
+        mutableStateOf(initialProductType.ifBlank { existing?.productType ?: "" })
+    }
+    var nationalCode by remember(existing?.id, initialBarcode, initialNationalCode) {
+        mutableStateOf(initialNationalCode.ifBlank { existing?.nationalCode ?: "" })
+    }
+    var registrationNumber by remember(existing?.id, initialBarcode, initialRegistrationNumber) {
+        mutableStateOf(initialRegistrationNumber.ifBlank { existing?.registrationNumber ?: "" })
+    }
+    var sourceId by remember(existing?.id, initialBarcode, initialSourceId) {
+        mutableStateOf(initialSourceId.ifBlank { existing?.sourceId ?: "" })
+    }
+    var sourceName by remember(existing?.id, initialBarcode, initialSourceName) {
+        mutableStateOf(initialSourceName.ifBlank { existing?.sourceName ?: "" })
+    }
+    var sourceConfidence by remember(existing?.id, initialBarcode, initialSourceConfidence) {
+        mutableStateOf(if (initialSourceConfidence > 0) initialSourceConfidence else existing?.sourceConfidence ?: 0.0)
     }
     var reminder by remember(existing?.id) {
         mutableStateOf((existing?.reminderDays ?: 7).toString())
@@ -2274,6 +2395,54 @@ private fun ExpiryDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
+
+                if (brand.isNotBlank()) {
+                    OutlinedTextField(
+                        value = brand,
+                        onValueChange = { brand = it },
+                        label = { Text("Marca") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                if (manufacturer.isNotBlank()) {
+                    OutlinedTextField(
+                        value = manufacturer,
+                        onValueChange = { manufacturer = it },
+                        label = { Text("Fabricante") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                if (quantity.isNotBlank()) {
+                    OutlinedTextField(
+                        value = quantity,
+                        onValueChange = { quantity = it },
+                        label = { Text("Formato") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                if (activeIngredients.isNotBlank()) {
+                    OutlinedTextField(
+                        value = activeIngredients,
+                        onValueChange = { activeIngredients = it },
+                        label = { Text("Principios activos") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                if (ingredients.isNotBlank()) {
+                    OutlinedTextField(
+                        value = ingredients,
+                        onValueChange = { ingredients = it },
+                        label = { Text("Ingredientes") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
 
                 OutlinedTextField(
                     value = barcode,
@@ -2346,7 +2515,18 @@ private fun ExpiryDialog(
                             expiryMillis = date,
                             reminderDays = reminder.toIntOrNull()?.coerceIn(0, 365) ?: 7,
                             barcode = barcode.trim(),
-                            imageUrl = imageUrl.trim()
+                            imageUrl = imageUrl.trim(),
+                            quantity = quantity.trim(),
+                            brand = brand.trim(),
+                            manufacturer = manufacturer.trim(),
+                            productType = productType.trim(),
+                            ingredients = ingredients.trim(),
+                            activeIngredients = activeIngredients.trim(),
+                            nationalCode = nationalCode.trim(),
+                            registrationNumber = registrationNumber.trim(),
+                            sourceId = sourceId.trim(),
+                            sourceName = sourceName.trim(),
+                            sourceConfidence = sourceConfidence.coerceIn(0.0, 1.0)
                         )
                     )
                 }

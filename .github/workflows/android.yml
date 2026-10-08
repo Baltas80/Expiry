@@ -2,7 +2,9 @@ name: Android build
 
 on:
   push:
-    branches: [ master ]
+    branches:
+      - master
+      - feature/expiry-product-data-federation
   pull_request:
     branches: [ master ]
 

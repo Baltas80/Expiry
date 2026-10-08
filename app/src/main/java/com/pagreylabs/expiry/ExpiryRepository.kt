@@ -38,7 +38,24 @@ class ExpiryRepository(context: Context) {
         val array = JSONArray()
         items.forEach { array.put(it.toJson()) }
         prefs.edit().putString("items", array.toString()).apply()
-        rememberProduct(normalized.barcode, normalized.name, normalized.category)
+        if (normalized.name.isNotBlank()) {
+            rememberProduct(
+                barcode = normalized.barcode,
+                name = normalized.name,
+                category = normalized.category,
+                brand = normalized.brand,
+                manufacturer = normalized.manufacturer,
+                imageUrl = normalized.imageUrl,
+                productType = normalized.productType,
+                ingredients = normalized.ingredients,
+                activeIngredients = normalized.activeIngredients,
+                sourceId = normalized.sourceId,
+                sourceName = normalized.sourceName,
+                confidence = normalized.sourceConfidence,
+                nationalCode = normalized.nationalCode,
+                registrationNumber = normalized.registrationNumber
+            )
+        }
     }
 
     fun delete(id: Long) {
@@ -48,10 +65,63 @@ class ExpiryRepository(context: Context) {
     }
 
     /** Keeps a local barcode-to-product mapping even after an item leaves active inventory. */
-    fun rememberProduct(barcode: String, name: String, category: String = "") {
+    fun rememberProduct(
+        barcode: String,
+        name: String,
+        category: String = "",
+        brand: String = "",
+        manufacturer: String = "",
+        imageUrl: String = "",
+        quantity: String = "",
+        productType: String = "",
+        ingredients: String = "",
+        activeIngredients: String = "",
+        sourceId: String = "",
+        sourceName: String = "",
+        confidence: Double = 0.0,
+        nationalCode: String = "",
+        registrationNumber: String = ""
+    ) {
         val catalog = productCatalog()
-        catalog.remember(barcode, name, category)
+        catalog.remember(
+            barcode = barcode,
+            name = name,
+            category = category,
+            brand = brand,
+            manufacturer = manufacturer,
+            imageUrl = imageUrl,
+            quantity = quantity,
+            productType = productType,
+            ingredients = ingredients,
+            activeIngredients = activeIngredients,
+            sourceId = sourceId,
+            sourceName = sourceName,
+            confidence = confidence,
+            nationalCode = nationalCode,
+            registrationNumber = registrationNumber
+        )
         prefs.edit().putString("product_catalog", catalog.toJson()).apply()
+    }
+
+    fun rememberProduct(product: ProductSources.ProductData) {
+        if (product.name.isBlank()) return
+        rememberProduct(
+            barcode = product.barcode,
+            name = product.name,
+            category = product.category,
+            brand = product.brand,
+            manufacturer = product.manufacturer,
+            imageUrl = product.imageUrl,
+            quantity = product.quantity,
+            productType = product.productType.name,
+            ingredients = product.ingredients,
+            activeIngredients = product.activeIngredients,
+            sourceId = product.sourceId,
+            sourceName = product.sourceName,
+            confidence = product.confidence,
+            nationalCode = product.nationalCode,
+            registrationNumber = product.registrationNumber
+        )
     }
 
     fun findProductByBarcode(barcode: String): CatalogProduct? =
@@ -101,7 +171,22 @@ class ExpiryRepository(context: Context) {
         })
         while (array.length() > MAX_OUTCOME_HISTORY) array.remove(0)
         outcomePrefs.edit().putString("history", array.toString()).apply()
-        rememberProduct(item.barcode, item.name, item.category)
+        rememberProduct(
+            barcode = item.barcode,
+            name = item.name,
+            category = item.category,
+            brand = item.brand,
+            manufacturer = item.manufacturer,
+            imageUrl = item.imageUrl,
+            productType = item.productType,
+            ingredients = item.ingredients,
+            activeIngredients = item.activeIngredients,
+            sourceId = item.sourceId,
+            sourceName = item.sourceName,
+            confidence = item.sourceConfidence,
+            nationalCode = item.nationalCode,
+            registrationNumber = item.registrationNumber
+        )
     }
 
     fun outcomeHistory(): List<OutcomeEvent> {
@@ -141,12 +226,18 @@ class ExpiryRepository(context: Context) {
         val o = JSONObject(raw)
         return ExpiryUserProfile(
             userId = o.optString("userId", userId()),
-            displayName = o.optString("displayName"), email = o.optString("email"), phone = o.optString("phone"),
-            birthDate = o.optString("birthDate"), country = o.optString("country"), city = o.optString("city"),
-            postalCode = o.optString("postalCode"), language = o.optString("language", "es"),
+            displayName = o.optString("displayName"),
+            email = o.optString("email"),
+            phone = o.optString("phone"),
+            birthDate = o.optString("birthDate"),
+            country = o.optString("country"),
+            city = o.optString("city"),
+            postalCode = o.optString("postalCode"),
+            language = o.optString("language", "es"),
             timezone = o.optString("timezone", java.util.TimeZone.getDefault().id),
             marketingConsent = o.optBoolean("marketingConsent"),
-            analyticsConsent = o.optBoolean("analyticsConsent"), syncConsent = o.optBoolean("syncConsent"),
+            analyticsConsent = o.optBoolean("analyticsConsent"),
+            syncConsent = o.optBoolean("syncConsent"),
             consentAcceptedAt = if (o.has("consentAcceptedAt")) o.optLong("consentAcceptedAt") else null,
             retentionUntil = if (o.has("retentionUntil")) o.optLong("retentionUntil") else null
         )
@@ -171,7 +262,9 @@ class ExpiryRepository(context: Context) {
 
     /** Server-ready export. Consumption history is intentionally excluded. */
     fun cloudSnapshot(): ExpiryCloudSnapshot = ExpiryCloudSnapshot(
-        user = userProfile(), products = all(), scanHistory = scanHistory()
+        user = userProfile(),
+        products = all(),
+        scanHistory = scanHistory()
     )
 
     private fun migrateLegacyOutcomeHistory() {
@@ -195,7 +288,22 @@ class ExpiryRepository(context: Context) {
     }
 }
 
-data class CatalogProduct(val name: String, val category: String)
+data class CatalogProduct(
+    val name: String,
+    val category: String,
+    val brand: String = "",
+    val manufacturer: String = "",
+    val imageUrl: String = "",
+    val quantity: String = "",
+    val productType: String = "",
+    val ingredients: String = "",
+    val activeIngredients: String = "",
+    val sourceId: String = "",
+    val sourceName: String = "",
+    val confidence: Double = 0.0,
+    val nationalCode: String = "",
+    val registrationNumber: String = ""
+)
 
 data class ScanEvent(val barcode: String, val timestamp: Long)
 

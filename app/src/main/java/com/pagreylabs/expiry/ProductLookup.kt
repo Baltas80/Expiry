@@ -1,48 +1,61 @@
 package com.pagreylabs.expiry
 
-import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
-import java.util.Locale
+import java.util.concurrent.Executors
 
 /**
- * Global barcode lookup.
+ * Backward-compatible facade used by the UI.
  *
- * Expiry first checks its local catalog, then queries Open Food Facts' universal
- * Product Opener endpoint with product_type=all. The endpoint can resolve food,
- * beauty, pet-food and other product records across the Open* Facts instances.
- *
- * Barcode input is normalized conservatively so common GTIN representations from
- * different markets can be resolved without changing the user's original code.
+ * The actual source federation lives in ProductSources. Keeping this facade
+ * small prevents UI code from depending on individual databases.
  */
 object ProductLookup {
     data class Result(
         val found: Boolean,
         val name: String = "",
         val category: String = "",
-        val imageUrl: String = ""
+        val imageUrl: String = "",
+        val brand: String = "",
+        val manufacturer: String = "",
+        val quantity: String = "",
+        val ingredients: String = "",
+        val activeIngredients: String = "",
+        val productType: ProductSources.ProductType = ProductSources.ProductType.UNKNOWN,
+        val nationalCode: String = "",
+        val registrationNumber: String = "",
+        val commercialized: Boolean? = null,
+        val supplyProblem: Boolean? = null,
+        val productUrl: String = "",
+        val sourceId: String = "",
+        val sourceName: String = "",
+        val confidence: Double = 0.0
     )
 
     fun lookup(barcode: String, callback: (Result?) -> Unit) {
-        Thread {
+        val candidates = barcodeCandidates(barcode)
+        val primary = candidates.firstOrNull() ?: return callback(null)
+        Executors.newSingleThreadExecutor().execute {
             val result = runCatching {
-                barcodeCandidates(barcode).asSequence()
-                    .mapNotNull { candidate ->
-                        lookupLocal(candidate) ?: lookupRemote(candidate)
-                    }
+                candidates.asSequence()
+                    .mapNotNull { ProductSources.local(ExpiryApplication.appContext, it) }
                     .firstOrNull()
+                    ?: ProductSources.lookupRemote(primary)
             }.getOrNull()
-            callback(result)
-        }.start()
+
+            if (result != null) {
+                runCatching {
+                    ExpiryRepository(ExpiryApplication.appContext).rememberProduct(result)
+                }
+            }
+            callback(result?.toResult())
+        }
     }
 
     /**
-     * Keeps candidate generation deterministic and network-free for unit tests.
+     * Deterministic barcode candidate generation shared with the capture layer.
      *
-     * We preserve the scanned value first, then add common GTIN equivalents:
-     * UPC-A <-> EAN-13-with-leading-zero, 11-digit UPC payload, and GTIN-14
-     * base variants. For GS1 strings containing AI (01), the 14-digit GTIN
-     * is extracted too.
+     * The original scan is preserved, followed by compacted GS1 content and
+     * common UPC/EAN/GTIN equivalents. Leading zeroes are not discarded from
+     * the canonical candidate list.
      */
     internal fun barcodeCandidates(barcode: String): List<String> {
         val raw = barcode.trim()
@@ -59,6 +72,7 @@ object ProductLookup {
         val compact = raw.replace(Regex("\\s+"), "")
         if (compact != raw) add(compact)
 
+        // A GS1 DataMatrix may contain AI (01) followed by a 14-digit GTIN.
         Regex("01\\D*(\\d{14})").findAll(raw)
             .map { it.groupValues[1] }
             .forEach(::add)
@@ -76,102 +90,36 @@ object ProductLookup {
             }
         }
 
+        // Prefer the canonical GTIN-13/GTIN-14-looking candidate for network
+        // calls, but retain the original value in the result for traceability.
         return result.toList()
     }
 
-    private fun lookupLocal(barcode: String): Result? {
-        if (barcode.isBlank()) return null
-        val product = ExpiryRepository(ExpiryApplication.appContext).findProductByBarcode(barcode) ?: return null
-        return Result(found = true, name = product.name, category = product.category)
-    }
+    private fun ProductSources.ProductData.toResult(): Result = Result(
+        found = !isEmpty(),
+        name = name,
+        category = category,
+        imageUrl = imageUrl,
+        brand = brand,
+        manufacturer = manufacturer,
+        quantity = quantity,
+        ingredients = ingredients,
+        activeIngredients = activeIngredients,
+        productType = productType,
+        nationalCode = nationalCode,
+        registrationNumber = registrationNumber,
+        commercialized = commercialized,
+        supplyProblem = supplyProblem,
+        productUrl = productUrl,
+        sourceId = sourceId,
+        sourceName = sourceName,
+        confidence = confidence
+    )
 
-    private fun lookupRemote(barcode: String): Result? {
-        val query = "?product_type=all&" + localizationQuery() +
-            "&fields=code,product_name,abbreviated_product_name,generic_name,categories,categories_tags,image_front_url,image_url"
-
-        val v3 = requestProduct("https://world.openfoodfacts.org/api/v3/product/" + barcode + query, barcode)
-        return v3 ?: requestProduct("https://world.openfoodfacts.org/api/v2/product/" + barcode + query, barcode)
-    }
-
-    /** v3/v2 share the same result parsing; HttpURLConnection follows redirects. */
-    private fun requestProduct(urlText: String, barcode: String): Result? {
-        val url = URL(urlText)
-        val connection = (url.openConnection() as HttpURLConnection).apply {
-            requestMethod = "GET"
-            connectTimeout = 7000
-            readTimeout = 7000
-            instanceFollowRedirects = true
-            setRequestProperty("Accept", "application/json")
-            setRequestProperty(
-                "User-Agent",
-                "Expiry/1.0 (https://github.com/Baltas80/Expiry; contact via GitHub)"
-            )
-        }
-        return try {
-            if (connection.responseCode !in 200..299) return null
-            val root = JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
-            if (root.optInt("status", 0) != 1) return null
-            productResult(root.optJSONObject("product"), barcode)
-        } finally {
-            connection.disconnect()
-        }
-    }
-
-    private fun productResult(product: JSONObject?, barcode: String): Result {
-        if (product == null) return Result(found = false)
-
-        val name = normalizeProductName(
-            firstNonBlank(
-                product.optString("product_name"),
-                product.optString("abbreviated_product_name"),
-                product.optString("generic_name")
-            )
-        )
-        val category = firstCategory(
-            product.optString("categories"),
-            product.optString("categories_tags")
-        )
-        val imageUrl = firstNonBlank(
-            product.optString("image_front_url"),
-            product.optString("image_url")
-        )
-
-        val result = Result(
-            found = name.isNotBlank() || category.isNotBlank(),
-            name = name,
-            category = category,
-            imageUrl = imageUrl
-        )
-        if (result.found) {
-            ExpiryRepository(ExpiryApplication.appContext).rememberProduct(barcode, result.name, result.category)
-        }
-        return result
-    }
-
-    private fun firstCategory(vararg values: String): String =
-        values.asSequence()
-            .flatMap { raw -> raw.split(',').asSequence().map { it.trim() } }
-            .firstOrNull { it.isNotBlank() }
-            .orEmpty()
-
-    private fun localizationQuery(): String {
-        val locale = Locale.getDefault()
-        val language = locale.language.takeIf { it.length == 2 }.orEmpty()
-        val country = locale.country.takeIf { it.length == 2 }.orEmpty()
-        val tagsLanguage = language.ifBlank { "en" }
-        return buildList {
-            if (language.isNotBlank()) add("lc=" + language)
-            if (country.isNotBlank()) add("cc=" + country)
-            add("tags_lc=" + tagsLanguage)
-        }.joinToString("&")
-    }
-
-    private fun normalizeProductName(value: String): String {
-        if (value.isBlank()) return value
-        if (!value.contains("leche", ignoreCase = true)) return value
-        return value.replace(Regex("\\busted\\b", RegexOption.IGNORE_CASE), "UHT")
-    }
-
-    private fun firstNonBlank(vararg values: String): String =
-        values.firstOrNull { it.isNotBlank() }?.trim().orEmpty()
+    private fun ProductSources.ProductData.isEmpty(): Boolean =
+        name.isBlank() && brand.isBlank() && manufacturer.isBlank() &&
+            category.isBlank() && imageUrl.isBlank() && quantity.isBlank() &&
+            ingredients.isBlank() && activeIngredients.isBlank() &&
+            nationalCode.isBlank() && registrationNumber.isBlank() &&
+            productUrl.isBlank()
 }
