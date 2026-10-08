@@ -77,3 +77,41 @@ Expiry está preparado para una cobertura internacional amplia mediante recursos
 ## Privacidad
 
 Consulta la [Política de Privacidad de Expiry](PRIVACY_POLICY.md).
+
+
+## Monetización preparada para la próxima actualización
+
+Expiry ofrece tres opciones comerciales:
+
+- **Gratis**: versión con publicidad mediante Google Mobile Ads/AdMob, con consentimiento gestionado mediante UMP.
+- **Expiry Premium mensual/anual**: suscripción de Google Play que elimina la publicidad mientras esté activa.
+- **Expiry Premium de por vida**: producto único no consumible de Google Play que elimina la publicidad mediante un único pago.
+
+### Identificadores de Google Play
+
+Crear en Play Console una suscripción con:
+
+- Product ID: `premium_no_ads`
+- Base plan mensual: `monthly`
+- Base plan anual: `annual`
+
+La aplicación consulta las ofertas disponibles directamente desde Google Play y utiliza el precio localizado que devuelve Play. No se deben introducir precios fijos en el código.
+
+### Premium de por vida
+
+Crear en Play Console un producto único no consumible con Product ID `premium_lifetime`. La aplicación consulta este producto como `INAPP` y combina su entitlement con el de la suscripción: cualquiera de los dos productos adquiridos mantiene Premium activo.
+
+### AdMob
+
+Antes de activar anuncios en producción hay que registrar la aplicación en AdMob y completar:
+
+- `app/src/main/res/values/monetization.xml` → `admob_app_id`
+- `app/src/main/res/values/monetization.xml` → `admob_banner_ad_unit_id`
+
+Mientras esos valores estén vacíos, el SDK permanece sin solicitar anuncios. Esto evita publicar accidentalmente anuncios con identificadores de prueba o inventados.
+
+### Seguridad de la suscripción
+
+La aplicación actualiza el entitlement Premium consultando las suscripciones activas de Google Play y reconoce las compras pendientes de reconocimiento. Para una futura evolución con backend, el token de compra puede verificarse servidor a servidor mediante las APIs de Google Play Developer.
+
+La dependencia usada es Play Billing 9.1.0, versión soportada actualmente para nuevas actualizaciones. La integración sigue el flujo moderno de `ProductDetails` y ofertas de suscripción.
