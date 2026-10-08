@@ -14,19 +14,15 @@ object DailyMedProductDataSource : ProductDataSource {
 
     override fun lookup(barcode: String, candidates: List<String>): ProductRecord? {
         BarcodeNormalizer.ndcCandidates(barcode).forEach { ndc ->
-            val url = "https://dailymed.nlm.nih.gov/dailymed/services/v2/ndc/" +
-                ProductHttpClient.encodeQuery(ndc) + "/spls.json"
+            val url = "https://dailymed.nlm.nih.gov/dailymed/services/v2/spls.json?ndc=" +
+                ProductHttpClient.encodeQuery(ndc) + "&pagesize=5&page=1"
 
             val response = ProductHttpClient.getJson(url) ?: return@forEach
-            val data = response.json.optJSONArray("DATA") ?: return@forEach
+            val data = response.json.optJSONArray("data") ?: return@forEach
             if (data.length() == 0) return@forEach
 
-            val columns = response.json.optJSONArray("COLUMNS")
-            val titleIndex = columns?.indexOfValue("TITLE") ?: -1
-            val setIdIndex = columns?.indexOfValue("SETID") ?: -1
-            val first = data.optJSONArray(0) ?: return@forEach
-
-            val title = if (titleIndex >= 0) first.optString(titleIndex).trim() else ""
+            val first = data.optJSONObject(0) ?: return@forEach
+            val title = first.optString("title").trim()
             if (title.isBlank()) return@forEach
 
             return ProductRecord(
@@ -40,21 +36,12 @@ object DailyMedProductDataSource : ProductDataSource {
                 confidence = 0.82,
                 externalIds = buildMap {
                     put("ndc", ndc)
-                    if (setIdIndex >= 0) {
-                        first.optString(setIdIndex).trim().takeIf { it.isNotBlank() }?.let {
-                            put("spl_set_id", it)
-                        }
+                    first.optString("setid").trim().takeIf { it.isNotBlank() }?.let {
+                        put("spl_set_id", it)
                     }
                 }
             )
         }
         return null
-    }
-
-    private fun org.json.JSONArray.indexOfValue(value: String): Int {
-        for (i in 0 until length()) {
-            if (optString(i).equals(value, ignoreCase = true)) return i
-        }
-        return -1
     }
 }
