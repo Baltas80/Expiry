@@ -10,6 +10,7 @@ package com.pagreylabs.expiry
 object MonetizationConfig {
     /** Google Play subscription product. Create this exact ID in Play Console. */
     const val PREMIUM_NO_ADS_PRODUCT_ID = "premium_no_ads"
+    const val PREMIUM_LIFETIME_PRODUCT_ID = "premium_lifetime"
 
     /** Recommended base-plan IDs for the subscription product. */
     const val MONTHLY_BASE_PLAN_ID = "monthly"
