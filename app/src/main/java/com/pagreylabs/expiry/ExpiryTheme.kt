@@ -17,41 +17,34 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 
-// Approved Expiry visual language: green as the primary brand, blue for secondary
-// information, amber for upcoming items and red for expired items.
-private val ExpiryGreen = Color(0xFF2E7D32)
-private val ExpiryGreenLight = Color(0xFF81C784)
-private val ExpiryBlue = Color(0xFF0288D1)
-private val ExpiryAmber = Color(0xFFFBC02D)
-private val ExpiryRed = Color(0xFFE53935)
-private val ExpiryInk = Color(0xFF18211F)
-private val ExpiryBackground = Color(0xFFF8F9FA)
+private val ExpiryPrimary = Color(0xFF0F7A4A)
+private val ExpiryBackground = Color(0xFFF7F8F6)
+private val ExpiryInk = Color(0xFF17201B)
 private val ExpirySurface = Color(0xFFFFFFFF)
-private val ExpirySurfaceVariant = Color(0xFFE8EEEB)
-private val ExpiryDarkBackground = Color(0xFF121212)
-private val ExpiryDarkSurface = Color(0xFF1B211F)
-private val ExpiryDarkSurfaceVariant = Color(0xFF26302C)
+private val ExpirySurfaceVariant = Color(0xFFE8EEE9)
+private val ExpiryAmber = Color(0xFFE8A814)
+private val ExpiryRed = Color(0xFFC83D36)
 
 private val LightColors = lightColorScheme(
-    primary = ExpiryGreen,
+    primary = ExpiryPrimary,
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFDDEEDC),
-    onPrimaryContainer = Color(0xFF0C3B12),
-    secondary = ExpiryBlue,
+    primaryContainer = Color(0xFFDCEFE5),
+    onPrimaryContainer = Color(0xFF063B23),
+    secondary = ExpiryInk,
     onSecondary = Color.White,
-    secondaryContainer = Color(0xFFD7EEFF),
-    onSecondaryContainer = Color(0xFF00344F),
+    secondaryContainer = Color(0xFFE3E9E5),
+    onSecondaryContainer = ExpiryInk,
     tertiary = ExpiryAmber,
     onTertiary = Color(0xFF3B2E00),
-    tertiaryContainer = Color(0xFFFFE8A3),
+    tertiaryContainer = Color(0xFFFFE3A0),
     onTertiaryContainer = Color(0xFF332600),
     background = ExpiryBackground,
     onBackground = ExpiryInk,
     surface = ExpirySurface,
     onSurface = ExpiryInk,
     surfaceVariant = ExpirySurfaceVariant,
-    onSurfaceVariant = Color(0xFF43504C),
-    outline = Color(0xFF77847F),
+    onSurfaceVariant = Color(0xFF4D5A53),
+    outline = Color(0xFF7B897F),
     error = ExpiryRed,
     onError = Color.White,
     errorContainer = Color(0xFFFFDAD6),
@@ -59,25 +52,25 @@ private val LightColors = lightColorScheme(
 )
 
 private val DarkColors = darkColorScheme(
-    primary = Color(0xFF81C784),
-    onPrimary = Color(0xFF123B16),
-    primaryContainer = Color(0xFF245B28),
-    onPrimaryContainer = Color(0xFFB9F0B9),
-    secondary = Color(0xFF64B5F6),
-    onSecondary = Color(0xFF00344F),
-    secondaryContainer = Color(0xFF004D73),
-    onSecondaryContainer = Color(0xFFB9E3FF),
-    tertiary = Color(0xFFFFD54F),
-    onTertiary = Color(0xFF3B2E00),
-    tertiaryContainer = Color(0xFF5A4700),
-    onTertiaryContainer = Color(0xFFFFE8A3),
-    background = ExpiryDarkBackground,
-    onBackground = Color(0xFFE2E8E4),
-    surface = ExpiryDarkSurface,
-    onSurface = Color(0xFFE2E8E4),
-    surfaceVariant = ExpiryDarkSurfaceVariant,
-    onSurfaceVariant = Color(0xFFC1CBC5),
-    outline = Color(0xFF89958F),
+    primary = Color(0xFF59C98A),
+    onPrimary = Color(0xFF003A21),
+    primaryContainer = Color(0xFF075D36),
+    onPrimaryContainer = Color(0xFFB7F2CF),
+    secondary = Color(0xFFC8D2CB),
+    onSecondary = Color(0xFF2D352F),
+    secondaryContainer = Color(0xFF3A443D),
+    onSecondaryContainer = Color(0xFFE4EDE7),
+    tertiary = Color(0xFFFFCA55),
+    onTertiary = Color(0xFF412F00),
+    tertiaryContainer = Color(0xFF5F4600),
+    onTertiaryContainer = Color(0xFFFFE5A8),
+    background = ExpiryInk,
+    onBackground = Color(0xFFE8EEE9),
+    surface = Color(0xFF1F2A23),
+    onSurface = Color(0xFFE8EEE9),
+    surfaceVariant = Color(0xFF29362E),
+    onSurfaceVariant = Color(0xFFC1CCC4),
+    outline = Color(0xFF89978F),
     error = Color(0xFFFF8A80),
     onError = Color(0xFF5F0000),
     errorContainer = Color(0xFF8C1D18),
@@ -102,10 +95,14 @@ private val ExpiryShapes = Shapes(
 )
 
 @Composable
-fun ExpiryTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
+fun ExpiryTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    content: @Composable () -> Unit
+) {
     val context = LocalContext.current
     val mode = context.getSharedPreferences("expiry_settings", Context.MODE_PRIVATE)
         .getString("theme_mode", "system")
+
     val resolvedDark = when (mode) {
         "light" -> false
         "dark" -> true
@@ -114,20 +111,14 @@ fun ExpiryTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable
 
     val window = (context as? ComponentActivity)?.window
     if (window != null) {
-        window.statusBarColor = if (resolvedDark) {
-            ExpiryDarkBackground.toArgbCompat()
-        } else {
-            ExpiryBackground.toArgbCompat()
-        }
-        window.navigationBarColor = if (resolvedDark) {
-            ExpiryDarkBackground.toArgbCompat()
-        } else {
-            ExpirySurface.toArgbCompat()
-        }
+        WindowCompat.enableEdgeToEdge(window)
+
         val controller = WindowCompat.getInsetsController(window, window.decorView)
         controller.isAppearanceLightStatusBars = !resolvedDark
         controller.isAppearanceLightNavigationBars = !resolvedDark
-        if (Build.VERSION.SDK_INT >= 29) window.isNavigationBarContrastEnforced = false
+        if (Build.VERSION.SDK_INT >= 29) {
+            window.isNavigationBarContrastEnforced = false
+        }
     }
 
     MaterialTheme(
@@ -138,9 +129,3 @@ fun ExpiryTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable
     )
 }
 
-private fun Color.toArgbCompat(): Int = android.graphics.Color.argb(
-    (alpha * 255f).toInt().coerceIn(0, 255),
-    (red * 255f).toInt().coerceIn(0, 255),
-    (green * 255f).toInt().coerceIn(0, 255),
-    (blue * 255f).toInt().coerceIn(0, 255)
-)

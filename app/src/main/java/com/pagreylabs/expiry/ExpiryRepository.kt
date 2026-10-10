@@ -12,14 +12,20 @@ class ExpiryRepository(context: Context) {
 
     fun all(): List<ExpiryItem> {
         val raw = prefs.getString("items", "[]") ?: "[]"
-        val array = runCatching { JSONArray(raw) }.getOrElse { return emptyList() }
-        return buildList {
-            for (i in 0 until array.length()) {
-                runCatching { ExpiryItem.fromJson(array.getJSONObject(i)) }
-                    .getOrNull()
-                    ?.let(::add)
+        return runCatching { parseItems(raw) }.getOrElse { currentFailure ->
+            val recovery = prefs.getString("items_recovery", null)
+                ?: throw IllegalStateException("Inventory data is corrupt and no recovery copy exists", currentFailure)
+            runCatching { parseItems(recovery) }.getOrElse { recoveryFailure ->
+                throw IllegalStateException("Inventory and recovery copy are corrupt", recoveryFailure)
             }
-        }.sortedBy { it.expiryMillis }
+        }
+    }
+
+    private fun writeItems(items: List<ExpiryItem>) {
+        val serialized = JSONArray().apply { items.forEach { put(it.toJson()) } }.toString()
+        check(prefs.edit().putString("items", serialized).putString("items_recovery", serialized).commit()) {
+            "Unable to persist inventory"
+        }
     }
 
     fun get(id: Long): ExpiryItem? = all().firstOrNull { it.id == id }
@@ -35,16 +41,12 @@ class ExpiryRepository(context: Context) {
             reminderDays = normalizedReminderDays
         )
         val items = all().filterNot { it.id == normalized.id } + normalized
-        val array = JSONArray()
-        items.forEach { array.put(it.toJson()) }
-        prefs.edit().putString("items", array.toString()).apply()
+        writeItems(items)
         rememberProduct(normalized.barcode, normalized.name, normalized.category)
     }
 
     fun delete(id: Long) {
-        val array = JSONArray()
-        all().filterNot { it.id == id }.forEach { array.put(it.toJson()) }
-        prefs.edit().putString("items", array.toString()).apply()
+        writeItems(all().filterNot { it.id == id })
     }
 
     /** Keeps a local barcode-to-product mapping even after an item leaves active inventory. */
@@ -189,6 +191,13 @@ class ExpiryRepository(context: Context) {
     }
 
     companion object {
+        internal fun parseItems(raw: String): List<ExpiryItem> {
+            val array = JSONArray(raw)
+            return buildList {
+                for (i in 0 until array.length()) add(ExpiryItem.fromJson(array.getJSONObject(i)))
+            }.sortedBy { it.expiryMillis }
+        }
+
         private const val MAX_SCAN_HISTORY = 500
         private const val MAX_OUTCOME_HISTORY = 500
         private const val RETENTION_YEARS = 5

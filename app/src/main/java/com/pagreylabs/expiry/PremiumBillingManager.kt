@@ -17,15 +17,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-/**
- * Owns the Play Billing connection and Premium entitlement state.
- *
- * Premium can be granted by either the recurring subscription or the
- * non-consumable lifetime purchase. The app only grants entitlement from
- * purchases reported as PURCHASED by Google Play.
- *
- * A backend can be added later for server-side purchase-token verification.
- */
 class PremiumBillingManager(context: Context) : AutoCloseable {
     data class SubscriptionOffer(
         val productDetails: ProductDetails,
@@ -46,6 +37,8 @@ class PremiumBillingManager(context: Context) : AutoCloseable {
 
     private val appContext = context.applicationContext
     private val _isPremium = MutableStateFlow(false)
+    private val subscriptionActive = MutableStateFlow(false)
+    private val lifetimeActive = MutableStateFlow(false)
     private val _offers = MutableStateFlow<List<SubscriptionOffer>>(emptyList())
     private val _lifetimeOffer = MutableStateFlow<LifetimeOffer?>(null)
 
@@ -73,9 +66,12 @@ class PremiumBillingManager(context: Context) : AutoCloseable {
             refresh()
             return
         }
+
         billingClient.startConnection(object : BillingClientStateListener {
             override fun onBillingSetupFinished(result: BillingResult) {
-                if (result.responseCode == BillingClient.BillingResponseCode.OK) refresh()
+                if (result.responseCode == BillingClient.BillingResponseCode.OK) {
+                    refresh()
+                }
             }
 
             override fun onBillingServiceDisconnected() = Unit
@@ -108,11 +104,10 @@ class PremiumBillingManager(context: Context) : AutoCloseable {
 
         billingClient.queryProductDetailsAsync(query) { result, details ->
             if (result.responseCode == BillingClient.BillingResponseCode.OK) {
-                _offers.value = details.productDetailsList
-                    .flatMap { product ->
-                        product.subscriptionOfferDetails.orEmpty()
-                            .map { SubscriptionOffer(product, it) }
-                    }
+                _offers.value = details.productDetailsList.flatMap { product ->
+                    product.subscriptionOfferDetails.orEmpty()
+                        .map { SubscriptionOffer(product, it) }
+                }
             }
         }
     }
@@ -198,11 +193,11 @@ class PremiumBillingManager(context: Context) : AutoCloseable {
             .build()
 
     private fun processSubscriptionPurchases(purchases: List<Purchase>) {
-        val active = purchases.any {
+        subscriptionActive.value = purchases.any {
             it.products.contains(MonetizationConfig.PREMIUM_NO_ADS_PRODUCT_ID) &&
                 it.purchaseState == Purchase.PurchaseState.PURCHASED
         }
-        if (active) _isPremium.value = true
+        recomputePremium()
 
         purchases
             .filter {
@@ -214,11 +209,11 @@ class PremiumBillingManager(context: Context) : AutoCloseable {
     }
 
     private fun processOneTimePurchases(purchases: List<Purchase>) {
-        val active = purchases.any {
+        lifetimeActive.value = purchases.any {
             it.products.contains(MonetizationConfig.PREMIUM_LIFETIME_PRODUCT_ID) &&
                 it.purchaseState == Purchase.PurchaseState.PURCHASED
         }
-        if (active) _isPremium.value = true
+        recomputePremium()
 
         purchases
             .filter {
@@ -229,6 +224,10 @@ class PremiumBillingManager(context: Context) : AutoCloseable {
             .forEach(::acknowledgePurchase)
     }
 
+    private fun recomputePremium() {
+        _isPremium.value = subscriptionActive.value || lifetimeActive.value
+    }
+
     private fun acknowledgePurchase(purchase: Purchase) {
         billingClient.acknowledgePurchase(
             AcknowledgePurchaseParams.newBuilder()
@@ -236,7 +235,7 @@ class PremiumBillingManager(context: Context) : AutoCloseable {
                 .build()
         ) { result ->
             if (result.responseCode == BillingClient.BillingResponseCode.OK) {
-                _isPremium.value = true
+                recomputePremium()
             }
         }
     }

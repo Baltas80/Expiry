@@ -11,8 +11,8 @@ android {
         applicationId = "com.pagreylabs.expiry"
         minSdk = 24
         targetSdk = 36
-        versionCode = 11
-        versionName = "1.0.5"
+        versionCode = 12
+        versionName = "1.0.6"
         // Italian is intentionally excluded because a transitive dependency ships
         // a malformed values-it resource that fails AAPT during resource merging.
         resourceConfigurations.addAll(setOf(
@@ -49,6 +49,30 @@ android {
         releaseKeyAlias,
         releaseKeyPassword
     ).all { !it.isNullOrBlank() }
+
+    // The Google Mobile Ads SDK's manifest initializer runs before Application.onCreate.
+    // An empty app ID can therefore crash the debug APK before AdsManager can skip ads.
+    // Use Google's official test IDs in debug builds unless CI explicitly supplies test IDs.
+    buildTypes.getByName("debug") {
+        resValue(
+            "string",
+            "admob_app_id",
+            System.getenv("EXPIRY_ADMOB_APP_ID")?.takeIf { it.isNotBlank() }
+                ?: "ca-app-pub-3940256099942544~3347511713"
+        )
+        resValue(
+            "string",
+            "admob_banner_ad_unit_id",
+            System.getenv("EXPIRY_ADMOB_ANDROID_BANNER_ID")?.takeIf { it.isNotBlank() }
+                ?: "ca-app-pub-3940256099942544/6300978111"
+        )
+    }
+
+    buildTypes.getByName("release") {
+        isMinifyEnabled = true
+        isShrinkResources = true
+        proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+    }
 
     if (releaseSigningReady) {
         signingConfigs.create("production") {
@@ -87,7 +111,7 @@ dependencies {
     implementation("io.coil-kt.coil3:coil-compose:3.6.3")
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.6.3")
 
-    // Monetization foundation for the next release:
+    // Monetization stack for the ad-supported free tier and Premium no-ads tier:
     // - AdMob 25.5.0 for the free/ad-supported tier.
     // - UMP 4.0.0 for consent and privacy choices.
     // - Play Billing 9.1.0 for the Premium no-ads subscription.

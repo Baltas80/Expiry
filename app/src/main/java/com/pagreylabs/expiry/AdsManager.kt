@@ -4,13 +4,17 @@ import android.app.Activity
 import android.content.Context
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
@@ -20,10 +24,6 @@ import com.google.android.ump.ConsentInformation
 import com.google.android.ump.ConsentRequestParameters
 import com.google.android.ump.UserMessagingPlatform
 
-/**
- * Centralizes AdMob/UMP initialization. Ads stay disabled until the real
- * AdMob IDs are supplied in res/values/monetization.xml.
- */
 class AdsManager(private val context: Context) {
     private val consentInformation: ConsentInformation =
         UserMessagingPlatform.getConsentInformation(context)
@@ -71,12 +71,18 @@ fun ExpiryBannerAd(
     val adUnitId = stringResource(R.string.admob_banner_ad_unit_id)
     val appIdConfigured = stringResource(R.string.admob_app_id).isNotBlank()
     val adUnitConfigured = adUnitId.isNotBlank()
+
     if (!appIdConfigured || !adUnitConfigured) return
 
     val adView = remember(adUnitId, configuration.screenWidthDp) {
         AdView(context).apply {
             this.adUnitId = adUnitId
-            setAdSize(AdSize.getLargeAnchoredAdaptiveBannerAdSize(context, configuration.screenWidthDp))
+            setAdSize(
+                AdSize.getLargeAnchoredAdaptiveBannerAdSize(
+                    context,
+                    configuration.screenWidthDp
+                )
+            )
             loadAd(AdRequest.Builder().build())
         }
     }
@@ -85,16 +91,23 @@ fun ExpiryBannerAd(
         onDispose { adView.destroy() }
     }
 
-    AndroidView(
-        factory = {
-            FrameLayout(it).apply {
-                layoutParams = ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-                )
-                addView(adView)
-            }
-        },
-        modifier = modifier.fillMaxWidth()
-    )
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 50.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        AndroidView(
+            factory = {
+                FrameLayout(it).apply {
+                    layoutParams = ViewGroup.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                    )
+                    addView(adView)
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
 }

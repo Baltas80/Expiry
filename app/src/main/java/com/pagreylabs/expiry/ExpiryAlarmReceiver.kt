@@ -7,6 +7,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 
@@ -14,7 +15,14 @@ class ExpiryAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return
         val itemId = intent.getLongExtra("id", Long.MIN_VALUE)
-        val item = if (itemId != Long.MIN_VALUE) ExpiryRepository(context.applicationContext).get(itemId) else null
+        val item = if (itemId != Long.MIN_VALUE) {
+            try {
+                ExpiryRepository(context.applicationContext).get(itemId)
+            } catch (error: IllegalStateException) {
+                Log.e("ExpiryAlarmReceiver", "Cannot resolve reminder because inventory data is corrupt", error)
+                return
+            }
+        } else null
 
         // An item-specific alarm can outlive a deletion/edit race. Do not notify for stale alarms.
         if (itemId != Long.MIN_VALUE && item == null) return

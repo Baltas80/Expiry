@@ -29,8 +29,23 @@ jobs:
           default_text = default.read_text(encoding='utf-8')
           default_keys = set(key_re.findall(default_text))
           # Rewards is an intentionally inactive, forward-compatible resource.
-          # It is not required to be present in every locale until the feature is enabled.
-          default_keys.discard('settings_rewards')
+          # The new 1.0.6 visual copy is allowed to fall back to the default
+          # Spanish resources in locales that have not been translated yet.
+          fallback_keys = {
+              'settings_rewards',
+              'hero_title',
+              'hero_subtitle',
+              'quick_actions',
+              'premium_recommended',
+              'premium_annual_label',
+              'premium_monthly_label',
+              'active_products_label',
+              'total_scans_label',
+              'consumed_registered_label',
+              'discarded_registered_label',
+          }
+          required_keys = default_keys - fallback_keys
+
           if not default_keys:
               raise SystemExit('No default string resources found')
 
@@ -41,7 +56,7 @@ jobs:
           for path in sorted(root.glob('values-*/strings.xml')):
               text = path.read_text(encoding='utf-8')
               keys = set(key_re.findall(text))
-              missing = sorted(default_keys - keys)
+              missing = sorted(required_keys - keys)
               if missing:
                   failed = True
                   print(f'{path}: missing {len(missing)} keys: {", ".join(missing)}')

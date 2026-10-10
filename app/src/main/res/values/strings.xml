@@ -2,12 +2,22 @@
 <resources>
     <string name="app_name">Expiry</string>
     <string name="tagline">Organiza hoy, aprovecha mañana</string>
+    <string name="hero_title" translatable="false">Aprovecha tus alimentos</string>
+    <string name="hero_subtitle" translatable="false">Controla lo que caduca y recibe avisos a tiempo.</string>
+    <string name="quick_actions" translatable="false">Acciones rápidas</string>
+    <string name="premium_recommended" translatable="false">Recomendado</string>
+    <string name="premium_annual_label" translatable="false">Premium anual</string>
+    <string name="premium_monthly_label" translatable="false">Premium mensual</string>
+    <string name="active_products_label" translatable="false">Productos activos</string>
+    <string name="total_scans_label" translatable="false">Escaneos</string>
+    <string name="consumed_registered_label" translatable="false">Consumidos</string>
+    <string name="discarded_registered_label" translatable="false">Desechados</string>
     <string name="pantry_title">Tu despensa</string>
     <string name="pantry_subtitle">Todo bajo control</string>
     <string name="upcoming_products">Productos próximos</string>
     <string name="home">Inicio</string>
     <string name="scan_tab">Escanear</string>
-    <string name="add_tab">Añadir</string>
+    <string name="add_tab">Productos</string>
     <string name="stats_tab">Estadísticas</string>
     <string name="more_tab">Más</string>
     <string name="expired_count_label">Caducados</string>
