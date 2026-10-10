@@ -5,6 +5,7 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 
 internal object ExpiryReminderScheduler {
     fun cancel(context: Context, ids: Iterable<Long>) {
@@ -19,9 +20,10 @@ internal object ExpiryReminderScheduler {
 
     fun rescheduleAll(context: Context) {
         val app = context.applicationContext
+        val items = ExpiryRepository(app).all()
         val alarm = app.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val now = System.currentTimeMillis()
-        ExpiryRepository(app).all().forEach { item ->
+        items.forEach { item ->
             val pending = reminderPendingIntent(app, item.id)
             alarm.cancel(pending)
             val trigger = ExpiryDateUtils.reminderTrigger(item.expiryMillis, item.reminderDays)
@@ -52,8 +54,13 @@ class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         when (intent.action) {
             Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_MY_PACKAGE_REPLACED,
-            Intent.ACTION_TIME_CHANGED, Intent.ACTION_TIMEZONE_CHANGED ->
-                ExpiryReminderScheduler.rescheduleAll(context)
+            Intent.ACTION_TIME_CHANGED, Intent.ACTION_TIMEZONE_CHANGED -> {
+                try {
+                    ExpiryReminderScheduler.rescheduleAll(context)
+                } catch (error: IllegalStateException) {
+                    Log.e("BootReceiver", "Cannot reschedule reminders because inventory data is corrupt", error)
+                }
+            }
         }
     }
 }
