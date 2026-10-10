@@ -2363,36 +2363,9 @@ private fun ExpiryDialog(
 }
 
 private fun scheduleReminder(context: Context, item: ExpiryItem) {
-    if (item.reminderDays < 0) return
-    val trigger = ExpiryDateUtils.reminderTrigger(item.expiryMillis, item.reminderDays)
-    if (trigger <= System.currentTimeMillis()) return
-
-    val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-    val intent = Intent(context, ExpiryAlarmReceiver::class.java).apply {
-        putExtra("id", item.id)
-    }
-    val requestCode = (item.id xor (item.id ushr 32)).toInt()
-    val pi = PendingIntent.getBroadcast(
-        context,
-        requestCode,
-        intent,
-        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-    )
-    am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, trigger, pi)
+    ExpiryReminderScheduler.schedule(context, item)
 }
 
 private fun cancelReminder(context: Context, id: Long) {
-    val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-    val intent = Intent(context, ExpiryAlarmReceiver::class.java).apply {
-        putExtra("id", id)
-    }
-    val requestCode = (id xor (id ushr 32)).toInt()
-    val pi = PendingIntent.getBroadcast(
-        context,
-        requestCode,
-        intent,
-        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-    )
-    am.cancel(pi)
-    pi.cancel()
+    ExpiryReminderScheduler.cancel(context, listOf(id))
 }
